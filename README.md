@@ -7,8 +7,9 @@
 
 Забудьте про SSH или RDP только для того, чтобы выполнить простую команду или посмотреть консоль. С WebConsole всё доступно через современный интерфейс в стиле «неоновое стекло» с обновлением в реальном времени.
 
-**[Скачать плагин](https://www.spigotmc.org/resources/webconsole.133712/)**
+**[Скачать плагин SpigotMC](https://www.spigotmc.org/resources/webconsole.133712/)**
 **[Английская версия плагина](https://github.com/TxTConsole/WebConsole-EN)**
+**[Скачать плагин SpigotRU](https://spigotmc.ru/resources/webconsole.5257/)**
 
 ---
 
