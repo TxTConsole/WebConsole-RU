@@ -1,0 +1,5 @@
+name: WebConsole
+version: 1.0.0
+main: com.webconsole.WebConsolePlugin
+api-version: 1.21
+author: TxT | </> Console

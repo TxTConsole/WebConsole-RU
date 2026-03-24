@@ -1,0 +1,2943 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Web-Console | Панель управления</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/dracula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/default.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/yaml/yaml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/properties/properties.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/shell/shell.min.js"></script>
+
+    <link id="favicon" rel="icon" type="image/svg+xml" href="">
+</head>
+<body>
+
+<!-- СТРАНИЦА АВТОРИЗАЦИИ -->
+<div id="auth-page" class="auth-overlay">
+    <div class="auth-top-controls">
+        <div class="auth-control-item">
+            <span class="auth-control-label" data-i18n="lbl-lang">Язык</span>
+            <div class="custom-select-wrapper" onclick="openSelectModal('set-language-auth', 'lbl-lang', 'ru')" style="width: auto;">
+                <span id="display-set-language-auth">Русский 🇷🇺</span>
+                <select id="set-language-auth" onchange="changeLanguageAuth()" style="display: none;">
+                    <option value="ru" data-icon="🇷🇺" data-i18n="lang-ru">Русский</option>
+                    <option value="en" data-icon="🇺🇸" data-i18n="lang-en">English</option>
+                </select>
+            </div>
+        </div>
+        <div class="auth-control-item">
+            <span class="auth-control-label" data-i18n="lbl-color-acc">Акцент</span>
+            <div style="background: var(--bg-input); border: 1px solid var(--border-muted); border-radius: 8px; padding: 4px; display: flex; align-items: center;">
+                <input type="color" id="set-color-accent-auth" class="color-picker" value="#ff7b00" onchange="checkColorsAndApplyAuth()">
+            </div>
+        </div>
+    </div>
+
+    <div class="auth-box glass-panel">
+        <div class="auth-brand">
+            <div class="brand-icon">>_</div>
+            <h2 data-i18n="auth-title">Web-Console</h2>
+        </div>
+        <div class="auth-form">
+            <div class="input-group">
+                <input type="text" id="auth-login" data-i18n-ph="auth-login-ph" placeholder="Логин" autocomplete="username">
+            </div>
+            <div class="input-group password-group" style="position: relative;">
+                <input type="password" id="auth-pass" data-i18n-ph="auth-pass-ph" placeholder="Пароль" style="padding-right: 45px;" autocomplete="current-password">
+                <button class="btn-eye" onclick="togglePassword()" id="togglePasswordBtn">👁️</button>
+            </div>
+            <div class="toggle-row" style="margin-top: 5px;">
+                <span class="toggle-label" data-i18n="auth-remember">Запомнить меня</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="auth-remember">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <button class="btn-action btn-orange" style="width: 100%; margin-top: 15px; font-size: 15px; padding: 12px;" onclick="performLogin()" data-i18n="auth-btn">Войти в панель</button>
+        </div>
+        <div class="auth-footer">
+            <span class="auth-version" id="auth-version-text">v1.0.0</span>
+            <div class="auth-status">
+                <div class="status-dot" id="auth-status-dot"></div>
+                <span id="auth-status-text" data-i18n="auth-status-loading">Загрузка...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="bg-blob blob-1"></div>
+<div class="bg-blob blob-2"></div>
+
+<div class="sidebar glass-panel">
+    <div class="brand" onclick="switchPage('console', document.querySelectorAll('.nav-item')[0])">
+        <div class="brand-icon">>_</div>
+        <div class="brand-text">
+            <span class="brand-title">Web-Console</span>
+            <span class="brand-sub" id="server-ip">127.0.0.1:25565</span>
+        </div>
+    </div>
+
+    <div class="search-system-container">
+        <div class="search-input-wrapper">
+            <svg viewBox="0 0 24 24" width="16" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+            <input type="text" id="globalSearch" data-i18n-ph="ph-search-global" placeholder="Поиск на сайте..." oninput="performGlobalSearch()">
+        </div>
+    </div>
+
+    <div class="nav-menu">
+        <div class="nav-item active" onclick="switchPage('console', this)">
+            <span class="nav-icon">💻</span>
+            <span data-i18n="nav-console">Консоль</span>
+        </div>
+        <div class="nav-item" onclick="switchPage('players', this)">
+            <span class="nav-icon">👥</span>
+            <span data-i18n="nav-players">Игроки</span>
+        </div>
+        <div class="nav-item" onclick="switchPage('files', this)">
+            <span class="nav-icon">📁</span>
+            <span data-i18n="nav-files">Файлы</span>
+        </div>
+        <div class="nav-item" onclick="switchPage('plugins', this)">
+            <span class="nav-icon">🧩</span>
+            <span data-i18n="menu_plugins">Плагины</span>
+        </div>
+        <div class="nav-item" onclick="switchPage('settings', this)">
+            <span class="nav-icon">⚙️</span>
+            <span data-i18n="nav-settings">Настройки</span>
+        </div>
+    </div>
+
+    <div class="stats-menu">
+        <div class="stat-item" data-i18n-tt="tt-tps">
+            <div class="stat-header"><span data-i18n="stat-tps">TPS</span><span class="stat-value" id="stat-tps">--</span></div>
+            <div class="progress-container" style="visibility: hidden;"><div class="progress-bar"></div></div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-header"><span data-i18n="stat-online">Онлайн</span><span class="stat-value"><span id="stat-players-used">0</span> / <span id="stat-players-max">0</span></span></div>
+            <div class="progress-container"><div class="progress-bar" id="bar-players" style="width: 0%"></div></div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-header"><span data-i18n="stat-ram">ОЗУ</span><span class="stat-value"><span id="stat-ram-used">0</span> / <span id="stat-ram-max">0</span> GB</span></div>
+            <div class="progress-container"><div class="progress-bar" id="bar-ram" style="width: 0%"></div></div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-header"><span data-i18n="stat-cpu">ЦП</span><span class="stat-value"><span id="stat-cpu-used">0</span>% / 100%</span></div>
+            <div class="progress-container"><div class="progress-bar" id="bar-cpu" style="width: 0%"></div></div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-header"><span data-i18n="stat-disk">Диск</span><span class="stat-value"><span id="stat-disk-used">0</span> / <span id="stat-disk-max">0</span> GB</span></div>
+            <div class="progress-container"><div class="progress-bar" id="bar-disk" style="width: 0%"></div></div>
+        </div>
+        <div class="stat-item" data-i18n-tt="tt-uptime">
+            <div class="stat-header"><span data-i18n="stat-uptime">Аптайм</span><span class="stat-value" id="stat-uptime">00:00:00</span></div>
+            <div class="progress-container" style="visibility: hidden;"><div class="progress-bar"></div></div>
+        </div>
+    </div>
+
+    <div class="logout-container">
+        <div class="author-credits" data-i18n="author-credits">Создатель TxT | Console<br>Discord - @txt.console</div>
+        <button class="btn-action btn-logout" onclick="performLogout()" style="width: 100%; margin-top: 10px; justify-content: center; color: var(--danger); border-color: rgba(255, 68, 68, 0.4);">
+            🚪 <span data-i18n="btn-logout">Выйти</span>
+        </button>
+    </div>
+</div>
+
+<div class="main-content">
+    <div id="search-overlay" class="search-results-overlay">
+        <h2 style="margin-bottom: 20px;" id="search-title-text"><span style="margin-right: 10px;">🔍</span><span data-i18n="search-results-title">Результаты поиска</span></h2>
+        <div id="search-results-container"></div>
+    </div>
+
+    <div id="page-console" class="content-section active-section">
+        <div class="top-bar">
+            <div class="status-box glass-panel" data-i18n-tt="tt-status" data-tooltip-pos="bottom">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="connection-status" data-i18n="status-conn">Подключение...</span>
+            </div>
+            <div class="actions">
+                <button class="btn-action" onclick="confirmAction('restart')" data-i18n-tt="tt-restart" data-tooltip-pos="bottom" data-i18n="btn-restart">
+                    🔄 Рестарт
+                </button>
+                <button class="btn-action btn-stop" onclick="confirmAction('stop')" data-i18n-tt="tt-stop" data-tooltip-pos="bottom" data-i18n="btn-stop">
+                    ⏹ Стоп
+                </button>
+            </div>
+        </div>
+
+        <div class="filter-bar glass-panel">
+            <div class="search-wrapper">
+                <svg viewBox="0 0 24 24" width="16" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                <input type="text" id="logSearch" class="search-box" data-i18n-ph="ph-search" placeholder="Поиск в консоли...">
+            </div>
+            <div class="tabs">
+                <div class="tab active active-all" onclick="filterLogs('all', this)" data-i18n="tab-all"><span>🌐</span> Все</div>
+                <div class="tab" onclick="filterLogs('info', this)" data-i18n="tab-info"><span>ℹ️</span> Инфо</div>
+                <div class="tab" onclick="filterLogs('warn', this)" data-i18n="tab-warn"><span>⚠️</span> Варны</div>
+                <div class="tab" onclick="filterLogs('error', this)" data-i18n="tab-error"><span>❌</span> Ошибки</div>
+            </div>
+            <div class="icon-buttons">
+                <button class="btn-icon" data-i18n-tt="tt-log-hist" onclick="openHistoryLogs()">
+                    <svg viewBox="0 0 24 24" width="18" fill="currentColor"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+                </button>
+                <button class="btn-icon" data-i18n-tt="tt-clear" onclick="clearConsole()">
+                    <svg viewBox="0 0 24 24" width="18" fill="currentColor"><path d="M16 9v10H8V9h8m-1.5-6h-5l-1 1H5v2h14V4h-3.5l-1-1zM18 7H6v12c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7z"/></svg>
+                </button>
+                <button class="btn-icon active-icon" id="btn-autoscroll" data-i18n-tt="tt-scroll" onclick="toggleAutoScroll()">
+                    <svg viewBox="0 0 24 24" width="18" fill="currentColor"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>
+                </button>
+                <button class="btn-icon" data-i18n-tt="tt-dl" onclick="downloadLogs()">
+                    <svg viewBox="0 0 24 24" width="18" fill="currentColor"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="console-outer-wrapper">
+            <div class="console-wrapper" id="log-container"></div>
+            <div id="conn-overlay" class="conn-overlay active connecting">
+                <div class="conn-box">
+                    <div class="conn-icon" id="conn-icon">↻</div>
+                    <div class="conn-text-wrapper">
+                        <div class="conn-text" id="conn-text" style="color: #fff;">
+                            <span id="conn-status-label">Подключение</span>
+                            <span class="dots"><span>.</span><span>.</span><span>.</span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="history-container" id="history-container"></div>
+
+        <div class="input-area glass-panel">
+            <button class="btn-icon" id="btn-cmd-help" onclick="openCommandsModal()" data-i18n-tt="tt-cmd-help" data-tooltip-pos="top" style="width: 40px; height: 40px; font-weight: bold; font-size: 16px;">
+                ?
+            </button>
+            <span class="input-prompt">>_</span>
+            <input type="text" class="cmd-input" id="cmdInput" data-i18n-ph="ph-cmd" autocomplete="off" autofocus>
+            <button class="btn-send" onclick="sendCommand()"><svg viewBox="0 0 24 24" width="18" fill="#000"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg></button>
+        </div>
+    </div>
+
+    <div id="page-players" class="content-section">
+        <div class="players-header">
+            <div class="players-title">
+                <span data-i18n="title-players">👥 Управление игроками</span>
+                <span class="players-count" id="page-player-count">0 / 0</span>
+                <button class="btn-action" style="margin-left: 15px; font-size: 12px; padding: 6px 15px;" onclick="openPunishedModal()" data-i18n-tt="tooltip_banned" data-tooltip-pos="bottom" data-i18n="btn-punished">
+                    ⚖️ Наказанные игроки
+                </button>
+            </div>
+            <div class="search-wrapper">
+                <svg viewBox="0 0 24 24" width="16" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                <input type="text" class="search-box" id="playersSearch" data-i18n-ph="ph-search-p" onkeyup="filterPlayersList()">
+            </div>
+        </div>
+        <div class="players-table-container glass-panel">
+            <table class="players-table">
+                <thead>
+                <tr>
+                    <th data-i18n="th-player">Игрок</th>
+                    <th data-i18n="th-ping">Пинг</th>
+                    <th data-i18n="th-time">Общее время</th>
+                    <th data-i18n="th-actions">Действия</th>
+                </tr>
+                </thead>
+                <tbody id="players-list"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="page-files" class="content-section">
+        <div class="players-header">
+            <div class="players-title">
+                <span style="margin-right: 8px;">📁</span><span data-i18n="nav-files">Файловый менеджер</span>
+            </div>
+        </div>
+        <div class="file-path-wrapper" id="pathContainer"></div>
+        <div class="file-actions-container">
+            <button class="btn-action" onclick="uploadFile()" data-i18n-tt="tooltip_upload" data-tooltip-pos="bottom" data-i18n="btn-upload">
+                📤 Загрузить файл
+            </button>
+            <button class="btn-action" onclick="createNewFile()" data-i18n-tt="tooltip_create" data-tooltip-pos="bottom">
+                <svg viewBox="0 0 24 24" width="16" fill="currentColor" style="margin-right:5px;"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                <span data-i18n="create_file">Создать файл</span>
+            </button>
+            <button class="btn-action" id="file-back-btn" onclick="navigateBack()" style="display: none;" data-i18n-tt="tooltip_back" data-tooltip-pos="bottom">
+                <svg viewBox="0 0 24 24" width="16" fill="currentColor" style="margin-right: 5px;">
+                    <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+                </svg>
+                <span data-i18n="back_btn">Назад</span>
+            </button>
+        </div>
+        <div class="file-manager-wrapper">
+            <div class="file-manager-header">
+                <div class="col-name" data-i18n="file-name">Имя</div>
+                <div class="col-size" data-i18n="file-size">Размер</div>
+                <div class="col-actions" data-i18n="file-actions">Действия</div>
+            </div>
+            <div id="file-list" class="file-list-container"></div>
+        </div>
+    </div>
+
+    <div id="page-plugins" class="content-section">
+        <div class="section-header" style="margin-bottom: 20px;">
+            <h2 style="color: var(--text-main); text-align: center;">
+                <span style="margin-right: 8px;">🧩</span><span data-i18n="plugins_title">Поиск плагинов</span>
+            </h2>
+        </div>
+
+        <div id="plugin-server-info" style="text-align: center; margin-bottom: 25px;"></div>
+
+        <div style="display: flex; justify-content: center; margin-bottom: 25px;">
+            <div class="search-input-wrapper" style="width: 100%; max-width: 400px; padding: 12px 20px;">
+                <svg viewBox="0 0 24 24" width="18" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                <input type="text" id="pluginSearch" data-i18n-ph="plugin_search_ph" placeholder="Введите название плагина..." oninput="searchPlugins()" autocomplete="off">
+            </div>
+        </div>
+
+        <div class="modrinth-credit" style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 20px;">
+            <span data-i18n="modrinth_credit">Все плагины берутся с официального сайта Modrinth.</span>
+        </div>
+
+        <div class="plugins-scroll-area custom-scrollbar">
+            <div id="plugins-grid" class="plugins-grid"></div>
+        </div>
+    </div>
+
+    <div id="page-settings" class="content-section">
+        <div class="players-header">
+            <div class="players-title" id="settings-title-container" data-i18n="title-settings">⚙️ Настройки</div>
+        </div>
+
+        <div id="settings-main-menu" class="settings-menu-grid">
+            <div class="settings-choice-card glass-panel" onclick="openServerSettings()">
+                <div class="choice-icon">🖥️</div>
+                <h3 style="color: var(--text-main); font-size: 18px; margin-bottom: 5px;" data-i18n="server-settings-title">Настройка сервера</h3>
+                <p style="color: var(--text-muted); font-size: 13px;" data-i18n="server-settings-desc">Управление server.properties, белым списком и операторами</p>
+            </div>
+            <div class="settings-choice-card glass-panel" onclick="openSiteSettings()">
+                <div class="choice-icon" style="color: var(--accent);">🎨</div>
+                <h3 style="color: var(--text-main); font-size: 18px; margin-bottom: 5px;" data-i18n="site-settings-title">Настройка сайта</h3>
+                <p style="color: var(--text-muted); font-size: 13px;" data-i18n="site-settings-desc">Интерфейс, цвета, уведомления и консоль</p>
+            </div>
+        </div>
+
+        <div id="site-settings-container" style="display: none; flex-direction: column; height: 100%;">
+            <div style="margin-bottom: 15px;">
+                <button class="btn-action" style="padding: 6px 15px; font-size: 13px;" onclick="backToSettingsMenu()" data-i18n="btn-back">⬅ Вернуться</button>
+            </div>
+            <div class="settings-grid">
+                <div class="settings-card glass-panel">
+                    <div class="card-header">
+                        <h3 data-i18n="set-h-conn">🔗 Подключение к консоли</h3>
+                        <button class="btn-reset" onclick="resetConnSettings()" data-i18n="btn-reset">Сброс</button>
+                    </div>
+                    <div class="input-group">
+                        <input type="text" id="set-ip" value="127.0.0.1" data-i18n-ph="lbl-ip" placeholder="IP Адрес">
+                    </div>
+                    <div class="input-group">
+                        <div class="number-ctrl">
+                            <button class="btn-sq" onclick="changeNumber('set-port', -1)">-</button>
+                            <input type="number" id="set-port" value="8080" data-i18n-ph="lbl-port" placeholder="Порт">
+                            <button class="btn-sq" onclick="changeNumber('set-port', 1)">+</button>
+                        </div>
+                    </div>
+                    <button class="btn-action" style="margin-top:5px; text-align:center;" onclick="saveConnectionSettings()" data-i18n="btn-save-conn">Сохранить и Подключиться</button>
+                </div>
+
+                <div class="settings-card glass-panel">
+                    <div class="card-header">
+                        <h3 data-i18n="set-h-app">🎨 Оформление</h3>
+                        <button class="btn-reset" onclick="resetAppearanceSettings()" data-i18n="btn-reset">Сброс</button>
+                    </div>
+                    <div class="input-group">
+                        <div class="custom-select-wrapper" onclick="openSelectModal('set-language', 'lbl-lang', 'ru')">
+                            <span id="display-set-language">Русский 🇷🇺</span>
+                            <select id="set-language" onchange="changeLanguage(); updateSelectDisplays();" style="display: none;">
+                                <option value="ru" data-icon="🇷🇺" data-i18n="lang-ru">Русский</option>
+                                <option value="en" data-icon="🇺🇸" data-i18n="lang-en">English</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="color-picker-row">
+                        <span class="toggle-label" data-i18n="lbl-color-acc">Акцентный цвет</span>
+                        <input type="color" id="set-color-accent" class="color-picker" value="#ff7b00" onchange="checkColorsAndApply()">
+                    </div>
+                    <button class="btn-action" style="width: 100%; justify-content: space-between; padding: 10px 15px;" onclick="openLogColorsModal()" data-i18n="btn-log-colors">Цвета логов <span style="font-size: 16px;">⚙️</span></button>
+                </div>
+
+                <div class="settings-card glass-panel" id="set-h-int">
+                    <div class="card-header">
+                        <h3 data-i18n="set-h-int">🖥️ Интерфейс консоли</h3>
+                        <button class="btn-reset" onclick="resetConsoleInterface()" data-i18n="btn-reset">Сброс</button>
+                    </div>
+                    <div class="toggle-row">
+                        <span class="toggle-label" data-i18n="lbl-wrap">Перенос строк</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="set-wrap" onchange="applyInterface()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="toggle-row">
+                        <span class="toggle-label" data-i18n="lbl-show-time">Отображать время</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="set-time" checked onchange="applyInterface()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="toggle-row">
+                        <span class="toggle-label" data-i18n="lbl-font">Размер шрифта</span>
+                        <div class="font-size-ctrl">
+                            <button class="btn-sq" onclick="changeFontSize(-1)">-</button>
+                            <span id="font-size-val">13px</span>
+                            <button class="btn-sq" onclick="changeFontSize(1)">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-card glass-panel">
+                    <div class="card-header">
+                        <h3 data-i18n="set-h-notif">🔔 Уведомления</h3>
+                        <button class="btn-reset" onclick="resetNotifSettings()" data-i18n="btn-reset">Сброс</button>
+                    </div>
+                    <div class="toggle-row">
+                        <span class="toggle-label" data-i18n="lbl-notif-en">Включить уведомления</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="set-notif-en" checked onchange="saveSettings()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="toggle-row">
+                        <span class="toggle-label" data-i18n="lbl-sound-en">Звуковые оповещения</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="set-sound-en">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="input-group">
+                        <div class="custom-select-wrapper" onclick="openSelectModal('set-notif-pos', 'lbl-pos', 'notif-bottom-right')">
+                            <span id="display-set-notif-pos" data-i18n="opt-br">Справа снизу</span>
+                            <select id="set-notif-pos" onchange="applyNotificationPos(); updateSelectDisplays();" style="display: none;">
+                                <option value="notif-bottom-right" data-i18n="opt-br">Справа снизу</option>
+                                <option value="notif-top-right" data-i18n="opt-tr">Справа сверху</option>
+                                <option value="notif-bottom-left" data-i18n="opt-bl">Слева снизу</option>
+                                <option value="notif-top-left" data-i18n="opt-tl">Слева сверху</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="input-group" style="margin-top: 10px;">
+                        <input type="file" id="set-sound-file" accept="audio/*" style="display: none;">
+                        <label for="set-sound-file" class="btn-action file-label" id="file-label-text" data-i18n="btn-choose-file" style="margin:0; text-align:center;">🎵 Выбрать файл...</label>
+                    </div>
+                    <button class="btn-reset" style="margin-top: 10px; width:100%; text-align:center; padding: 8px;" onclick="testNotification()" data-i18n="btn-test-notif">Тест уведомления</button>
+                </div>
+
+                <div class="settings-card glass-panel">
+                    <div class="card-header">
+                        <h3 data-i18n="set-h-adv">🛠️ Дополнительно</h3>
+                        <button class="btn-reset" onclick="resetAdvSettings()" data-i18n="btn-reset">Сброс</button>
+                    </div>
+                    <div class="toggle-row">
+                        <span class="toggle-label" data-i18n="lbl-dev">Режим разработчика</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="set-dev" onchange="saveSettings()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="toggle-row">
+                        <span class="toggle-label" data-i18n="lbl-debug">Режим Debug</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="set-debug" onchange="saveSettings()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="input-group" style="margin-top: 10px;">
+                        <div class="number-ctrl">
+                            <button class="btn-sq" onclick="changeNumber('set-interval', -100)">-</button>
+                            <input type="number" id="set-interval" value="1000" onchange="updateInterval()">
+                            <button class="btn-sq" onclick="changeNumber('set-interval', 100)">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-card glass-panel">
+                    <div class="card-header">
+                        <h3 data-i18n="set-h-about">ℹ️ О программе</h3>
+                    </div>
+                    <div class="about-row"><span class="about-label" data-i18n="ab-plug">Версия плагина:</span> <span class="about-val" id="about-plugin-ver" data-i18n="ab-load">Загрузка...</span></div>
+                    <div class="about-row"><span class="about-label" data-i18n="ab-serv">Версия сервера:</span> <span class="about-val" id="about-server-ver" data-i18n="ab-load">Загрузка...</span></div>
+                    <div class="about-row"><span class="about-label" data-i18n="ab-core">Ядро:</span> <span class="about-val" id="about-core" data-i18n="ab-load">Загрузка...</span></div>
+                    <div class="about-row"><span class="about-label" data-i18n="ab-author">Автор:</span> <span class="about-val">TxT | Console</span></div>
+                    <div class="about-row" style="border:none;"><span class="about-label">Discord:</span> <span class="about-val">@txt.console</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="server-settings-container" style="display: none; flex-direction: column; height: 100%;">
+            <div class="back-button">
+                <button class="btn-action" style="padding: 6px 15px; font-size: 13px;" onclick="backToSettingsMenu()" data-i18n="btn-back">⬅ Вернуться</button>
+            </div>
+            <div class="settings-grid">
+                <div class="settings-column">
+                    <div class="settings-card glass-panel">
+                        <div class="card-header">
+                            <h3 data-i18n="whitelist-title">📝 Белый список</h3>
+                            <button class="btn-reset" onclick="resetWhitelist()" data-i18n="btn-reset">Очистить</button>
+                        </div>
+                        <div class="toggle-row" data-i18n-tt="tt-wl-en">
+                            <span class="toggle-label" data-i18n="whitelist-enabled-label">Включить белый список</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="whitelist-enabled" onchange="markSettingsChanged()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="input-group" style="margin-top: 10px;">
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" id="whitelist-add-name" data-i18n-ph="ph-nickname" placeholder="Никнейм" style="flex: 1;">
+                                <button class="btn-action btn-add-player" onclick="addToWhitelist()">➕ <span data-i18n="whitelist-add-btn">Добавить</span></button>
+                            </div>
+                        </div>
+                        <div id="whitelist-list" class="player-list">
+                            <div class="player-list-item" style="justify-content: center; color: var(--text-muted);" data-i18n="loading">Загрузка...</div>
+                        </div>
+                        <button class="btn-action" style="margin-top: 10px;" onclick="saveWhitelist()" data-i18n="whitelist-save-btn">💾 Сохранить список</button>
+                    </div>
+
+                    <div class="settings-card glass-panel">
+                        <div class="card-header">
+                            <h3 data-i18n="ops-title">👑 Операторы (OP)</h3>
+                            <button class="btn-reset" onclick="resetOps()" data-i18n="btn-reset">Очистить</button>
+                        </div>
+                        <div class="input-group">
+                            <div style="display: flex; gap: 8px;">
+                                <input type="text" id="op-add-name" data-i18n-ph="ph-nickname" placeholder="Никнейм" style="flex: 1;">
+                                <button class="btn-action btn-add-player" onclick="addToOps()">➕ <span data-i18n="ops-add-btn">Добавить</span></button>
+                            </div>
+                        </div>
+                        <div id="ops-list" class="player-list">
+                            <div class="player-list-item" style="justify-content: center; color: var(--text-muted);" data-i18n="loading">Загрузка...</div>
+                        </div>
+                        <button class="btn-action" style="margin-top: 10px;" onclick="saveOps()" data-i18n="ops-save-btn">💾 Сохранить список</button>
+                    </div>
+
+                    <div class="settings-card glass-panel" style="margin-top: 20px;">
+                        <div class="card-header">
+                            <h3><span style="margin-right:8px;">⚙️</span><span data-i18n="server_core_info">Информация о сервере</span></h3>
+                        </div>
+                        <div class="toggle-row" style="justify-content: space-between;">
+                            <span class="toggle-label" data-i18n="sb-core">Ядро сервера</span>
+                            <span id="settings-core-val" class="highlight" style="font-family: monospace;">--</span>
+                        </div>
+                        <div class="toggle-row" style="justify-content: space-between;">
+                            <span class="toggle-label" data-i18n="sb-ver">Версия сервера</span>
+                            <span id="settings-ver-val" class="highlight" style="font-family: monospace;">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-column">
+                    <div class="settings-card glass-panel">
+                        <div class="card-header">
+                            <h3 data-i18n="server-basic-title">⚙️ Основные настройки</h3>
+                            <button class="btn-reset" onclick="resetServerProperties()" data-i18n="btn-reset">Сброс</button>
+                        </div>
+                        <div class="settings-group">
+                            <div class="toggle-row" data-i18n-tt="tt-srv-name">
+                                <span class="toggle-label" data-i18n="server-name-label">Название сервера</span>
+                                <input type="text" id="server-name" style="width: 140px;" onchange="markSettingsChanged()">
+                            </div>
+                            <div class="toggle-row" data-i18n-tt="tt-srv-ip">
+                                <span class="toggle-label" data-i18n="server-ip-label">IP адрес</span>
+                                <input type="text" id="server-ip-addr" style="width: 140px;" onchange="markSettingsChanged()">
+                            </div>
+                            <div class="toggle-row" data-i18n-tt="tt-srv-port">
+                                <span class="toggle-label" data-i18n="server-port-label">Порт</span>
+                                <div class="number-ctrl" style="width: 140px;">
+                                    <button class="btn-sq" onclick="changeNumber('server-port', -1)">-</button>
+                                    <input type="number" id="server-port" onchange="markSettingsChanged()">
+                                    <button class="btn-sq" onclick="changeNumber('server-port', 1)">+</button>
+                                </div>
+                            </div>
+                            <div class="toggle-row" data-i18n-tt="tt-srv-max">
+                                <span class="toggle-label" data-i18n="server-max-players-label">Макс. игроков</span>
+                                <div class="number-ctrl" style="width: 140px;">
+                                    <button class="btn-sq" onclick="changeNumber('server-max-players', -1)">-</button>
+                                    <input type="number" id="server-max-players" onchange="markSettingsChanged()">
+                                    <button class="btn-sq" onclick="changeNumber('server-max-players', 1)">+</button>
+                                </div>
+                            </div>
+                            <div class="toggle-row" data-i18n-tt="tt-srv-view">
+                                <span class="toggle-label" data-i18n="server-view-dist-label">Дистанция отрисовки</span>
+                                <div class="number-ctrl" style="width: 140px;">
+                                    <button class="btn-sq" onclick="changeNumber('view-distance', -1)">-</button>
+                                    <input type="number" id="view-distance" onchange="markSettingsChanged()">
+                                    <button class="btn-sq" onclick="changeNumber('view-distance', 1)">+</button>
+                                </div>
+                            </div>
+                            <div class="toggle-row" data-i18n-tt="tt-srv-sim">
+                                <span class="toggle-label" data-i18n="server-sim-dist-label">Дистанция симуляции</span>
+                                <div class="number-ctrl" style="width: 140px;">
+                                    <button class="btn-sq" onclick="changeNumber('simulation-distance', -1)">-</button>
+                                    <input type="number" id="simulation-distance" onchange="markSettingsChanged()">
+                                    <button class="btn-sq" onclick="changeNumber('simulation-distance', 1)">+</button>
+                                </div>
+                            </div>
+                            <div class="toggle-row" data-i18n-tt="tt-srv-max-world">
+                                <span class="toggle-label" data-i18n="server-max-world-label">Макс. радиус мира</span>
+                                <div class="number-ctrl" style="width: 140px;">
+                                    <button class="btn-sq" onclick="changeNumber('max-world-size', -1000)">-</button>
+                                    <input type="number" id="max-world-size" onchange="markSettingsChanged()">
+                                    <button class="btn-sq" onclick="changeNumber('max-world-size', 1000)">+</button>
+                                </div>
+                            </div>
+                            <div class="toggle-row" data-i18n-tt="tt-srv-spawn-prot">
+                                <span class="toggle-label" data-i18n="server-spawn-prot-label">Защита спавна</span>
+                                <div class="number-ctrl" style="width: 140px;">
+                                    <button class="btn-sq" onclick="changeNumber('spawn-protection', -1)">-</button>
+                                    <input type="number" id="spawn-protection" onchange="markSettingsChanged()">
+                                    <button class="btn-sq" onclick="changeNumber('spawn-protection', 1)">+</button>
+                                </div>
+                            </div>
+
+                            <div class="toggle-row" data-i18n-tt="tt-srv-online">
+                                <span class="toggle-label" data-i18n="server-online-mode-label">Online mode</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="server-online-mode" onchange="markSettingsChanged()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="toggle-row" data-i18n-tt="tt-srv-flight">
+                                <span class="toggle-label" data-i18n="server-allow-flight-label">Allow flight</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="server-allow-flight" onchange="markSettingsChanged()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="toggle-row" data-i18n-tt="tt-srv-pvp">
+                                <span class="toggle-label" data-i18n="server-pvp-label">PvP</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="server-pvp" onchange="markSettingsChanged()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="toggle-row" data-i18n-tt="tt-srv-cmd">
+                                <span class="toggle-label" data-i18n="server-cmd-block-label">Command blocks</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="enable-command-block" onchange="markSettingsChanged()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="toggle-row" data-i18n-tt="tt-srv-nether">
+                                <span class="toggle-label" data-i18n="server-nether-label">Allow Nether</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="allow-nether" onchange="markSettingsChanged()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="toggle-row" data-i18n-tt="tt-srv-hardcore">
+                                <span class="toggle-label" data-i18n="server-hardcore-label">Hardcore</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="hardcore" onchange="markSettingsChanged()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="toggle-row" data-i18n-tt="tt-srv-hide-online">
+                                <span class="toggle-label" data-i18n="server-hide-online-label">Hide online players</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="hide-online-players" onchange="markSettingsChanged()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="toggle-row" data-i18n-tt="tt-srv-monsters">
+                                <span class="toggle-label" data-i18n="server-monsters-label">Spawn monsters</span>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="spawn-monsters" onchange="markSettingsChanged()">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="toggle-row" data-i18n-tt="tt-srv-diff">
+                                <span class="toggle-label" data-i18n="server-difficulty-label">Сложность</span>
+                                <div class="custom-select-wrapper" onclick="openSelectModal('server-difficulty', 'server-difficulty-label', 'normal')">
+                                    <span id="display-server-difficulty" data-i18n="difficulty-normal">Нормальная</span>
+                                    <select id="server-difficulty" onchange="markSettingsChanged(); updateSelectDisplays();" style="display: none;">
+                                        <option value="peaceful" data-i18n="difficulty-peaceful" data-icon="🕊️">Мирная</option>
+                                        <option value="easy" data-i18n="difficulty-easy" data-icon="🌱">Лёгкая</option>
+                                        <option value="normal" data-i18n="difficulty-normal" data-icon="⚔️">Нормальная</option>
+                                        <option value="hard" data-i18n="difficulty-hard" data-icon="🔥">Сложная</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button class="btn-action" style="margin-top: 10px;" onclick="saveServerProperties()" data-i18n="btn-save-server">💾 Сохранить настройки</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="notif-container" class="notif-bottom-right"></div>
+
+<div class="modal-overlay" id="unsavedSettingsModal">
+    <div class="modal-box glass-panel" style="text-align: center;">
+        <div class="modal-title" style="margin-bottom: 15px; color: var(--warn-color);" data-i18n="unsaved-modal-title">⚠ Несохранённые изменения</div>
+        <p style="margin-bottom: 25px; color: var(--text-muted); font-size: 14px;" data-i18n="unsaved-modal-desc">Вы изменили настройки сервера, но не сохранили их.</p>
+        <div style="display: flex; justify-content: center; gap: 15px;">
+            <button class="btn-action btn-stop" onclick="handleUnsavedDiscard()" data-i18n="btn-discard">Отмена</button>
+            <button class="btn-action btn-orange" onclick="handleUnsavedSave()" data-i18n="btn-save-continue">Сохранить настройку</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="punishModal">
+    <div class="modal-box">
+        <div class="modal-header">
+            <div class="modal-title" id="modalTitle">Действие</div>
+            <button class="modal-close" onclick="closeModal('punishModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div style="margin-bottom: 10px;">
+                <label style="font-size: 11px; color: var(--text-muted);" data-i18n="mod-target">ЦЕЛЬ:</label><br>
+                <span class="modal-target" id="modalPlayerName">Игрок</span>
+            </div>
+            <input type="hidden" id="modalActionType">
+            <div class="toggle-row" id="ipActionToggle" style="margin-bottom: 5px;">
+                <span class="toggle-label" style="font-size: 13px;" data-i18n="lbl-by-ip">По IP адресу</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="modalByIp">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="input-group">
+                <input type="text" id="modalReason" data-i18n-ph="ph-reason" placeholder="Укажите причину наказания...">
+            </div>
+            <div class="input-group" id="durationGroup">
+                <input type="text" id="modalDuration" data-i18n-ph="ph-dur" placeholder="Навсегда, если пусто">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeModal('punishModal')" data-i18n="btn-cancel">Отмена</button>
+            <button class="btn-submit" id="modalSubmitBtn">Применить</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="punishedListModal">
+    <div class="modal-box" style="width: 550px;">
+        <div class="modal-header">
+            <div class="modal-title" data-i18n="title-punished-list">⚖️ Список наказанных</div>
+            <button class="modal-close" onclick="closeModal('punishedListModal')">&times;</button>
+        </div>
+        <div class="modal-body" style="max-height: 400px; overflow-y: auto; padding: 0 20px 20px 20px;">
+            <div class="modal-search-wrapper">
+                <svg viewBox="0 0 24 24" width="16" fill="currentColor" class="search-icon"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                <input type="text" id="punishedSearch" data-i18n-ph="ph-search-punished" placeholder="Поиск по нику..." onkeyup="filterPunishedList()">
+            </div>
+            <div id="punished-list-container">
+                <table class="players-table" style="width: 100%;">
+                    <tbody id="punished-list-body">
+                    <tr><td style="text-align:center" data-i18n="loading">Загрузка...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="logHistoryModal">
+    <div class="modal-box" style="width: 550px;">
+        <div class="modal-header">
+            <div class="modal-title" data-i18n="title-log-hist">📁 История логов</div>
+            <button class="modal-close" onclick="closeModal('logHistoryModal')">&times;</button>
+        </div>
+        <div class="modal-body" style="max-height: 400px; overflow-y: auto; padding: 0 20px 20px 20px;">
+            <div class="modal-search-wrapper">
+                <svg viewBox="0 0 24 24" width="16" fill="currentColor" class="search-icon"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                <input type="text" id="logsHistorySearch" data-i18n-ph="ph-search-logs" placeholder="Поиск по названию лога..." onkeyup="filterLogsHistory()">
+            </div>
+            <div id="log-history-container">
+                <table class="players-table" style="width: 100%;">
+                    <tbody id="log-history-body">
+                    <tr><td style="text-align:center" data-i18n="loading">Загрузка...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="fileEditorModal">
+    <div class="modal-box glass-panel modal-lg">
+        <div class="modal-header" style="border-bottom: 1px solid var(--border-muted); padding-bottom: 15px; margin-bottom: 0;">
+            <div class="modal-title" style="display:flex; align-items:center; gap:8px;">
+                <span data-i18n="editor-title">Редактирование</span>
+                <span style="color: var(--text-muted);">→</span>
+                <span style="font-family: monospace; color: var(--accent);" id="editor-title-name"></span>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <span id="editor-unsaved-warning" style="color: var(--warn-color); display: none; font-size: 12px; margin-right: 15px;" data-i18n="editor-unsaved">⚠ Есть несохранённые изменения</span>
+                <button class="btn-action btn-stop" style="padding: 6px 15px; font-size: 13px; border-radius: 6px;" onclick="closeFileEditor()" data-i18n="btn-cancel-editor">Отменить</button>
+                <button class="btn-action btn-orange" style="padding: 6px 15px; font-size: 13px; border-radius: 6px;" onclick="saveFile()" data-i18n="btn-save">Сохранить</button>
+            </div>
+        </div>
+        <div class="modal-body no-padding" style="margin-top: 0;">
+            <div class="editor-wrapper">
+                <textarea id="file-editor"></textarea>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="logColorsModal">
+    <div class="modal-box" style="width: 350px;">
+        <div class="modal-header">
+            <div class="modal-title" data-i18n="log-colors-title">Цвета логов консоли</div>
+            <button class="modal-close" onclick="closeModal('logColorsModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="color-picker-row">
+                <label class="toggle-label" data-i18n="lbl-color-inf">Цвет Инфо</label>
+                <input type="color" id="set-color-info" class="color-picker" value="#64c8ff" onchange="checkColorsAndApply()">
+            </div>
+            <div class="color-picker-row">
+                <label class="toggle-label" data-i18n="lbl-color-warn">Цвет Варн</label>
+                <input type="color" id="set-color-warn" class="color-picker" value="#ffc800" onchange="checkColorsAndApply()">
+            </div>
+            <div class="color-picker-row">
+                <label class="toggle-label" data-i18n="lbl-color-err">Цвет Ошибка</label>
+                <input type="color" id="set-color-error" class="color-picker" value="#ff5050" onchange="checkColorsAndApply()">
+            </div>
+            <div class="modal-footer" style="justify-content: space-between; margin-top: 15px;">
+                <button class="btn-reset" onclick="resetLogColors()" data-i18n="btn-reset">Сброс</button>
+                <button class="btn-cancel" onclick="closeModal('logColorsModal')" data-i18n="btn-close">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="customSelectModal">
+    <div class="modal-box" style="width: 350px;">
+        <div class="modal-header">
+            <div class="modal-title" id="selectModalTitle">Выбор</div>
+            <button class="modal-close" onclick="closeModal('customSelectModal')">&times;</button>
+        </div>
+        <div class="modal-body" id="selectModalBody" style="max-height: 400px; overflow-y: auto;"></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="commandsModal">
+    <div class="modal-box" style="width: 500px;">
+        <div class="modal-header">
+            <div class="modal-title" data-i18n="modal-cmd-title">📋 Справочник команд</div>
+            <button class="modal-close" onclick="closeModal('commandsModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-search-wrapper">
+                <svg viewBox="0 0 24 24" width="16" fill="currentColor" class="search-icon"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                <input type="text" id="cmdSearchInput" data-i18n-ph="modal-cmd-search" placeholder="Поиск команды..." onkeyup="filterCommandsList()">
+            </div>
+            <div id="commandsListContainer" class="custom-scrollbar" style="max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; padding-right: 10px;">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ==================== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ====================
+    const apiBaseUrl = '';
+    let currentToken = null;
+    let loginAttempts = 0;
+    let loginBlockedUntil = 0;
+    let autoScroll = true;
+    let currentLogFilter = 'all';
+    let lastLogId = 0;
+    let isConnected = false;
+    let logFetchIntervalId = null;
+    let statusFetchIntervalId = null;
+    let serverCheckInterval = null;
+    let isServerAvailable = true;
+    let commandHistory = [];
+    let serverCommands = [];
+    let customAudioData = null;
+    let allPlayersData = [];
+    let allPunishedData = [];
+    let allLogsHistory = [];
+    let currentPath = '';
+    let fileEditor = null;
+    let unsavedChanges = false;
+    let currentEditingFile = null;
+    let currentWhitelist = [];
+    let currentOps = [];
+    let isConnectedNotified = false;
+    let isServerSettingsModified = false;
+    let pendingNavAction = null;
+    let currentSettingsPage = 'main';
+    const originalFetch = window.fetch;
+
+    // ==================== ПЕРЕХВАТ FETCH ДЛЯ ТОКЕНА ====================
+    window.fetch = async function(...args) {
+        let [resource, config] = args;
+        if (!config) config = {};
+        if (!config.headers) config.headers = {};
+        const token = currentToken || localStorage.getItem('wcToken');
+        if (token) {
+            if (config.headers instanceof Headers) {
+                config.headers.append('Authorization', 'Bearer ' + token);
+            } else {
+                config.headers['Authorization'] = 'Bearer ' + token;
+            }
+        }
+        const response = await originalFetch(resource, config);
+        if (response.status === 401 && !resource.includes('/api/auth') && !resource.includes('/api/ping')) {
+            showAuthPage();
+        }
+        return response;
+    };
+
+    // ==================== ФУНКЦИИ АВТОРИЗАЦИИ ====================
+    function getDownloadToken() {
+        const token = currentToken || localStorage.getItem('wcToken');
+        return token ? `&token=${encodeURIComponent(token)}` : '';
+    }
+
+    function showAuthPage() {
+        localStorage.removeItem('wcToken');
+        currentToken = null;
+        document.getElementById('auth-page').classList.add('active');
+        if (logFetchIntervalId) clearInterval(logFetchIntervalId);
+        if (statusFetchIntervalId) clearInterval(statusFetchIntervalId);
+        if (serverCheckInterval) clearInterval(serverCheckInterval);
+    }
+
+    function performLogout() {
+        localStorage.removeItem('wcToken');
+        currentToken = null;
+        showAuthPage();
+    }
+
+    function togglePassword() {
+        const input = document.getElementById('auth-pass');
+        const btn = document.getElementById('togglePasswordBtn');
+        if (input.type === 'password') {
+            input.type = 'text';
+            btn.classList.add('active');
+            btn.innerHTML = '🙈';
+        } else {
+            input.type = 'password';
+            btn.classList.remove('active');
+            btn.innerHTML = '👁️';
+        }
+    }
+
+    function changeLanguageAuth() {
+        const lang = document.getElementById('set-language-auth').value;
+        document.getElementById('set-language').value = lang;
+        localStorage.setItem('wcLanguage', lang);
+        applyTranslations();
+        updateSelectDisplays();
+        const loginBtn = document.querySelector('#auth-page .btn-orange');
+        if (loginBtn) loginBtn.innerHTML = t('auth-btn');
+    }
+
+    function checkColorsAndApplyAuth() {
+        document.getElementById('set-color-accent').value = document.getElementById('set-color-accent-auth').value;
+        checkColorsAndApply();
+    }
+
+    function syncAuthSettings() {
+        const lang = localStorage.getItem('wcLanguage') || 'ru';
+        document.getElementById('set-language-auth').value = lang;
+        changeLanguageAuth();
+        const settings = localStorage.getItem('wcSettings');
+        let accent = '#ff7b00';
+        if (settings) {
+            try {
+                const parsed = JSON.parse(settings);
+                if (parsed.appearance && parsed.appearance.accent) accent = parsed.appearance.accent;
+            } catch(e) {}
+        }
+        document.getElementById('set-color-accent-auth').value = accent;
+        checkColorsAndApplyAuth();
+    }
+
+    async function performLogin() {
+        const login = document.getElementById('auth-login').value.trim();
+        const pass = document.getElementById('auth-pass').value;
+        const remember = document.getElementById('auth-remember').checked;
+
+        if (!login || !pass) {
+            triggerNotification(t('auth-error-empty'), t('auth-error-empty-desc'), 'error');
+            return;
+        }
+
+        const now = Date.now();
+        if (now < loginBlockedUntil) {
+            const secondsLeft = Math.ceil((loginBlockedUntil - now) / 1000);
+            triggerNotification(t('auth-error-blocked'), t('auth-error-blocked-desc').replace('{seconds}', secondsLeft), 'warn');
+            return;
+        }
+
+        const loginBtn = document.querySelector('#auth-page .btn-orange');
+        loginBtn.disabled = true;
+        loginBtn.innerHTML = '<span class="spinner"></span> ' + t('auth-logging-in');
+
+        try {
+            const response = await originalFetch(apiBaseUrl + '/api/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ login, password: pass, remember })
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                loginAttempts = 0;
+                currentToken = data.token;
+                if (remember) {
+                    localStorage.setItem('wcToken', data.token);
+                } else {
+                    localStorage.removeItem('wcToken');
+                }
+                document.getElementById('auth-page').classList.remove('active');
+                triggerNotification(t('auth-success'), t('auth-success-desc'), 'success');
+                startIntervals();
+                fetchServerCommands();
+                startServerAvailabilityCheck();
+                checkServerAvailability();
+                if (document.getElementById('page-players').classList.contains('active-section')) fetchPlayers();
+            } else {
+                loginAttempts++;
+                if (loginAttempts >= 3) {
+                    loginBlockedUntil = Date.now() + 10000;
+                    triggerNotification(t('auth-error-blocked'), t('auth-error-blocked-desc').replace('{seconds}', 10), 'error');
+                } else {
+                    triggerNotification(t('auth-error-invalid'), t('auth-error-invalid-desc'), 'error');
+                }
+            }
+        } catch (e) {
+            triggerNotification(t('auth-error-server'), t('auth-error-server-desc'), 'error');
+        } finally {
+            loginBtn.disabled = false;
+            loginBtn.innerHTML = t('auth-btn');
+            applyTranslations();
+        }
+    }
+
+    // ==================== ПРОВЕРКА ДОСТУПНОСТИ СЕРВЕРА ====================
+    async function checkServerAvailability() {
+        try {
+            const response = await originalFetch(apiBaseUrl + '/api/ping');
+            if (response.ok) {
+                isServerAvailable = true;
+            } else {
+                isServerAvailable = false;
+            }
+        } catch (e) {
+            isServerAvailable = false;
+        }
+        updatePluginsSection();
+        updateFilesSection();
+        return isServerAvailable;
+    }
+
+    function startServerAvailabilityCheck() {
+        if (serverCheckInterval) clearInterval(serverCheckInterval);
+        serverCheckInterval = setInterval(() => {
+            checkServerAvailability();
+        }, 5000);
+    }
+
+    function updatePluginsSection() {
+        const pluginsGrid = document.getElementById('plugins-grid');
+        const pluginSearch = document.getElementById('pluginSearch');
+        const pluginServerInfo = document.getElementById('plugin-server-info');
+        if (!pluginsGrid) return;
+
+        if (!isServerAvailable) {
+            if (pluginSearch) pluginSearch.disabled = true;
+            if (pluginServerInfo) pluginServerInfo.style.opacity = '0.5';
+            pluginsGrid.innerHTML = `
+                <div class="server-unavailable-card" style="grid-column: 1/-1; text-align: center; padding: 60px 20px;">
+                    <div class="unavailable-icon">🔌</div>
+                    <h3 data-i18n="server-unavailable-title">Сервер недоступен</h3>
+                    <p data-i18n="server-unavailable-desc">Для работы раздела "Плагины" требуется подключение к серверу Minecraft.</p>
+                    <button class="btn-action" onclick="checkServerAvailability()" data-i18n="server-unavailable-retry">Повторить попытку</button>
+                </div>
+            `;
+            applyTranslations();
+        } else {
+            if (pluginSearch) pluginSearch.disabled = false;
+            if (pluginServerInfo) pluginServerInfo.style.opacity = '1';
+            if (typeof performPluginSearch === 'function') performPluginSearch();
+        }
+    }
+
+    function updateFilesSection() {
+        const fileList = document.getElementById('file-list');
+        const filePathContainer = document.getElementById('pathContainer');
+        const fileActions = document.querySelector('.file-actions-container');
+        if (!fileList) return;
+
+        if (!isServerAvailable && document.getElementById('page-files').classList.contains('active-section')) {
+            if (filePathContainer) filePathContainer.style.display = 'none';
+            if (fileActions) fileActions.style.display = 'none';
+            fileList.innerHTML = `
+                <div class="server-unavailable-card" style="text-align: center; padding: 60px 20px;">
+                    <div class="unavailable-icon">🔌</div>
+                    <h3 data-i18n="server-unavailable-title">Сервер недоступен</h3>
+                    <p data-i18n="server-unavailable-desc-files">Файловый менеджер недоступен без подключения к серверу.</p>
+                    <button class="btn-action" onclick="checkServerAvailability()" data-i18n="server-unavailable-retry">Повторить попытку</button>
+                </div>
+            `;
+            applyTranslations();
+        } else {
+            if (filePathContainer) filePathContainer.style.display = 'flex';
+            if (fileActions) fileActions.style.display = 'flex';
+            if (currentPath !== undefined && document.getElementById('page-files').classList.contains('active-section')) {
+                loadFileList(currentPath);
+            }
+        }
+    }
+
+    // ==================== ФУНКЦИИ СБРОСА НАСТРОЕК ====================
+    function resetConnSettings() {
+        document.getElementById('set-ip').value = '127.0.0.1';
+        document.getElementById('set-port').value = 8080;
+        saveConnectionSettings();
+        triggerNotification(t('notif-success'), "Настройки подключения сброшены!", 'success');
+    }
+
+    function resetNotifSettings() {
+        document.getElementById('set-notif-en').checked = true;
+        document.getElementById('set-sound-en').checked = false;
+        document.getElementById('set-notif-pos').value = 'notif-bottom-right';
+        applyNotificationPos();
+        updateSelectDisplays();
+        saveSettings();
+        triggerNotification(t('notif-success'), "Настройки уведомлений сброшены!", 'success');
+    }
+
+    function resetAdvSettings() {
+        document.getElementById('set-dev').checked = false;
+        document.getElementById('set-debug').checked = false;
+        document.getElementById('set-interval').value = 1000;
+        updateInterval();
+        saveSettings();
+        triggerNotification(t('notif-success'), "Дополнительные настройки сброшены!", 'success');
+    }
+
+    // ==================== ПЕРЕВОДЫ ====================
+    const translations = {
+        ru: {
+            "nav-console": "Консоль", "nav-players": "Игроки", "nav-files": "Файлы", "nav-plugins": "Плагины", "nav-settings": "Настройки",
+            "stat-tps": "TPS", "stat-online": "Онлайн", "stat-ram": "ОЗУ", "stat-cpu": "ЦП", "stat-disk": "Диск", "stat-uptime": "Аптайм",
+            "tt-tps": "Тики в секунду (Идеал: 20)", "tt-uptime": "Время непрерывной работы сервера", "tt-status": "Текущий статус подключения",
+            "tt-restart": "Безопасная перезагрузка", "tt-stop": "Остановка сервера", "tt-clear": "Очистить консоль", "tt-scroll": "Автопрокрутка вкл/выкл",
+            "tt-dl": "Скачать логи", "tt-cmd": "Нажмите на ? или TAB для списка команд", "tt-cmd-help": "Справочник команд", "tt-log-hist": "История логов",
+            "status-conn": "Подключение...", "status-online": "В сети", "status-offline": "Нет связи",
+            "btn-restart": "🔄 Рестарт", "btn-stop": "⏹ Стоп", "btn-kick": "Кик", "btn-mute": "Мут", "btn-ban": "Бан",
+            "ph-search": "Поиск в консоли...", "ph-search-global": "Поиск на сайте...", "ph-cmd": "Введите команду...", "ph-nickname": "Никнейм",
+            "tab-all": "Все", "tab-info": "Инфо", "tab-warn": "Варны", "tab-error": "Ошибки",
+            "title-players": "👥 Управление игроками", "ph-search-p": "Поиск по нику...", "th-player": "Игрок", "th-ping": "Пинг", "th-time": "Общее время", "th-actions": "Действия", "table-empty": "Нет игроков в сети",
+            "title-settings": "⚙️ Настройки", "sub-site": "Сайт", "sub-server": "Сервер",
+            "set-h-conn": "🔗 Подключение к консоли", "set-h-app": "🎨 Оформление", "set-h-int": "🖥️ Интерфейс консоли", "set-h-notif": "🔔 Уведомления", "set-h-adv": "🛠️ Дополнительно", "set-h-about": "ℹ️ О программе",
+            "btn-reset": "Сброс", "lbl-ip": "IP Адрес", "lbl-port": "Порт", "btn-save-conn": "Сохранить и Подключиться",
+            "lbl-lang": "Язык / Language", "lbl-color-acc": "Акцентный цвет", "lbl-color-inf": "Цвет Инфо", "lbl-color-warn": "Цвет Варн", "lbl-color-err": "Цвет Ошибка",
+            "lbl-wrap": "Перенос строк", "lbl-show-time": "Отображать время", "lbl-font": "Размер шрифта",
+            "lbl-notif-en": "Включить уведомления", "lbl-sound-en": "Звуковые оповещения", "lbl-pos": "Позиция на экране",
+            "opt-br": "Справа снизу", "opt-tr": "Справа сверху", "opt-bl": "Слева снизу", "opt-tl": "Слева сверху",
+            "lbl-cust-sound": "Свой звук (до 2 секунд)", "btn-choose-file": "🎵 Выбрать файл...", "btn-test-notif": "Тест уведомления",
+            "lbl-dev": "Режим разработчика", "lbl-debug": "Режим Debug", "lbl-interval": "Интервал обновления (мс)",
+            "ab-plug": "Версия плагина:", "ab-serv": "Версия сервера:", "ab-core": "Ядро:", "ab-author": "Автор:", "ab-load": "Загрузка...",
+            "mod-target": "ЦЕЛЬ:", "ph-reason": "Укажите причину наказания...", "ph-dur": "Навсегда, если пусто", "btn-cancel": "Отмена", "lbl-by-ip": "По IP адресу",
+            "btn-punished": "⚖️ Наказанные игроки", "title-punished-list": "⚖️ Список наказанных", "title-log-hist": "📁 История логов",
+            "btn-unban": "Разбан", "btn-unmute": "Размут", "btn-del": "Удалить", "msg-no-punish": "Нет наказаний", "msg-no-logs": "Нет логов", "btn-dl": "Скачать",
+            "btn-upload": "📤 Загрузить файл", "btn-save": "Сохранить", "create_file": "Создать файл",
+            "server-settings-title": "Настройка сервера", "server-settings-desc": "Управление server.properties, белым списком и операторами",
+            "site-settings-title": "Настройка сайта", "site-settings-desc": "Интерфейс, цвета, уведомления и консоль", "btn-back": "⬅ Вернуться",
+            "server-basic-title": "⚙️ Основные настройки", "server-name-label": "Название сервера", "server-ip-label": "IP адрес", "server-port-label": "Порт",
+            "server-max-players-label": "Макс. игроков", "server-view-dist-label": "Дистанция отрисовки", "server-sim-dist-label": "Дистанция симуляции",
+            "server-max-world-label": "Макс. радиус мира", "server-spawn-prot-label": "Защита спавна", "server-online-mode-label": "Online mode",
+            "server-allow-flight-label": "Allow flight", "server-pvp-label": "PvP", "server-cmd-block-label": "Command blocks", "server-nether-label": "Allow Nether",
+            "server-hardcore-label": "Hardcore", "server-hide-online-label": "Hide online players", "server-monsters-label": "Spawn monsters",
+            "server-difficulty-label": "Сложность", "difficulty-peaceful": "Мирная", "difficulty-easy": "Лёгкая", "difficulty-normal": "Нормальная", "difficulty-hard": "Сложная",
+            "btn-save-server": "💾 Сохранить настройки", "whitelist-title": "📝 Белый список", "whitelist-enabled-label": "Включить белый список",
+            "whitelist-add-btn": "Добавить", "whitelist-save-btn": "💾 Сохранить список", "ops-title": "👑 Операторы (OP)", "ops-add-btn": "Добавить", "ops-save-btn": "💾 Сохранить список",
+            "loading": "Загрузка...", "empty-list": "Список пуст", "author-credits": "Создатель TxT | Console<br>Discord - @txt.console",
+            "file-name": "Имя", "file-size": "Размер", "file-actions": "Действия", "btn-log-colors": "Цвета логов ⚙️",
+            "editor-title": "Редактирование", "btn-cancel-editor": "Отменить", "btn-close": "Закрыть", "editor-unsaved": "⚠ Есть несохранённые изменения",
+            "ph-search-punished": "Поиск по нику...", "ph-search-logs": "Поиск по названию лога...", "log-colors-title": "Цвета логов консоли",
+            "conn-connecting": "Подключение", "conn-connected": "Успешно подключено", "conn-error": "Ошибка подключения",
+            "notif-success": "Успех", "notif-error": "Ошибка", "notif-info": "Система", "notif-warn": "Внимание",
+            "msg-unsaved-confirm": "Есть несохранённые изменения. Выйти без сохранения?", "back_btn": "Назад",
+            "msg-file-load-error": "Не удалось загрузить список файлов", "msg-upload-failed": "Не удалось загрузить файл", "msg-file-read-error": "Не удалось прочитать файл",
+            "save-success": "Файл сохранён", "file-delete-success": "Файл удалён", "lang-ru": "Русский", "lang-en": "English",
+            "notif-srv-saved": "Настройки сохранены. Требуется перезагрузка!", "notif-ops-saved": "Список операторов сохранён", "notif-wl-saved": "Белый список сохранён",
+            "unsaved-modal-title": "⚠ Несохранённые изменения", "unsaved-modal-desc": "Вы изменили настройки сервера, но не сохранили их.",
+            "btn-discard": "Отмена", "btn-save-continue": "Сохранить настройку",
+            "search-results-title": "Результаты поиска", "search-no-results": "Ничего не найдено", "search-no-results-desc": "По запросу",
+            "search-console-desc": "Просмотр логов сервера, выполнение команд", "search-players-desc": "Управление игроками онлайн, кик, бан",
+            "search-files-desc": "Файловый менеджер сервера, загрузка и редактирование", "search-settings-desc": "Управление конфигурацией WebConsole",
+            "search-conn-desc": "IP адрес и порт для подключения", "search-app-desc": "Цветовая схема, акцентные цвета, язык интерфейса",
+            "search-int-desc": "Размер шрифта, перенос строк, отображение времени", "search-notif-desc": "Включение уведомлений, звук, позиция на экране",
+            "search-plugins-desc": "Установка плагинов с Modrinth", "sb-core": "Ядро сервера", "sb-ver": "Версия сервера", "server_core_info": "Информация о сервере",
+            "tt-srv-name": "Название сервера, отображаемое в списке", "tt-srv-ip": "IP адрес сервера", "tt-srv-port": "Порт сервера",
+            "tt-srv-max": "Максимальное количество игроков", "tt-srv-view": "Дистанция отрисовки (в чанках)", "tt-srv-sim": "Дистанция симуляции (в чанках)",
+            "tt-srv-max-world": "Максимальный радиус мира в блоках", "tt-srv-spawn-prot": "Размер защищённой зоны спавна", "tt-srv-online": "Режим онлайн-проверки лицензии",
+            "tt-srv-flight": "Разрешить полёт на сервере", "tt-srv-pvp": "Включить режим PvP", "tt-srv-cmd": "Включение/отключение командных блоков",
+            "tt-srv-nether": "Включить/выключить Незер (Ад)", "tt-srv-hardcore": "Включить хардкор режим", "tt-srv-hide-online": "Скрыть или показать список игроков онлайн",
+            "tt-srv-monsters": "Разрешить спавн враждебных мобов", "tt-srv-diff": "Сложность игры", "tt-wl-en": "Включить белый список",
+            "msg-err-col-text": "Цвет сливается с фоном/текстом!", "tooltip_banned": "Просмотр наказанных игроков", "tooltip_upload": "Загрузить файлы на сервер",
+            "tooltip_create": "Создать новый файл", "tooltip_back": "Вернуться в предыдущую папку", "label-path": "Путь",
+            "plugins_title": "Поиск плагинов", "plugin_search_ph": "Введите название плагина...", "plugin_core": "Ядро", "plugin_version": "Версия",
+            "plugin_hint": "Показываем плагины для", "menu_plugins": "Плагины", "btn-install": "📦 Установить", "btn-reinstall": "🔄 Переустановить",
+            "btn-delete": "🗑️ Удалить", "plugin_install": "Установить", "plugin_reinstall": "Переустановить", "plugin_delete": "Удалить",
+            "modrinth_credit": "Все плагины берутся с официального сайта Modrinth", "plugin-loading": "Ищем лучшие плагины...",
+            "plugin-author": "Автор", "plugin-downloads": "Загрузок", "plugin-compatible": "✓ Совместимо", "plugin-incompatible": "✗ Несовместимо",
+            "plugin-success": "Установлено!", "plugin-deleted": "Удалено!", "plugin-err-load": "⚠ Ошибка при поиске плагинов. Проверьте соединение.",
+            "plugin-not-found": "❌ Ничего не найдено. Попробуйте другой запрос.", "plugin-unavailable": "⛔ Недоступно",
+            "notif-unbanned": "Игрок {player} успешно разбанен!", "notif-unmuted": "Игрок {player} успешно размучен!",
+            "modal-cmd-title": "📋 Справочник команд", "modal-cmd-search": "Поиск команды...",
+            "auth-title": "Web-Console", "auth-login-ph": "Логин", "auth-pass-ph": "Пароль", "auth-btn": "Войти в панель",
+            "btn-logout": "Выйти", "auth-remember": "Запомнить меня", "auth-status-avail": "Доступен", "auth-status-unavail": "Недоступен", "auth-status-loading": "Загрузка...",
+            "server-unavailable-title": "Сервер недоступен",
+            "server-unavailable-desc": "Для работы раздела \"Плагины\" требуется подключение к серверу Minecraft.",
+            "server-unavailable-desc-files": "Файловый менеджер недоступен без подключения к серверу.",
+            "server-unavailable-retry": "Повторить попытку",
+            "auth-error-empty": "Ошибка",
+            "auth-error-empty-desc": "Введите логин и пароль",
+            "auth-error-invalid": "Ошибка",
+            "auth-error-invalid-desc": "Неверный логин или пароль",
+            "auth-error-blocked": "Внимание",
+            "auth-error-blocked-desc": "Слишком много попыток. Подождите {seconds} сек.",
+            "auth-error-server": "Ошибка",
+            "auth-error-server-desc": "Нет связи с сервером",
+            "auth-success": "Успех",
+            "auth-success-desc": "Авторизация успешна!",
+            "auth-logging-in": "Вход..."
+        },
+        en: {
+            "nav-console": "Console", "nav-players": "Players", "nav-files": "Files", "nav-plugins": "Plugins", "nav-settings": "Settings",
+            "stat-tps": "TPS", "stat-online": "Online", "stat-ram": "RAM", "stat-cpu": "CPU", "stat-disk": "Disk", "stat-uptime": "Uptime",
+            "tt-tps": "Ticks per second (Ideal: 20)", "tt-uptime": "Server continuous uptime", "tt-status": "Current connection status",
+            "tt-restart": "Safe restart", "tt-stop": "Stop server", "tt-clear": "Clear console", "tt-scroll": "Autoscroll on/off",
+            "tt-dl": "Download logs", "tt-cmd": "Press ? or TAB for command list", "tt-cmd-help": "Command Directory", "tt-log-hist": "Log History",
+            "status-conn": "Connecting...", "status-online": "Online", "status-offline": "Offline",
+            "btn-restart": "🔄 Restart", "btn-stop": "⏹ Stop", "btn-kick": "Kick", "btn-mute": "Mute", "btn-ban": "Ban",
+            "ph-search": "Search in console...", "ph-search-global": "Search on site...", "ph-cmd": "Type command...", "ph-nickname": "Nickname",
+            "tab-all": "All", "tab-info": "Info", "tab-warn": "Warns", "tab-error": "Errors",
+            "title-players": "👥 Player Management", "ph-search-p": "Search nickname...", "th-player": "Player", "th-ping": "Ping", "th-time": "Playtime", "th-actions": "Actions", "table-empty": "No players online",
+            "title-settings": "⚙️ Settings", "sub-site": "Site", "sub-server": "Server",
+            "set-h-conn": "🔗 Console Connection", "set-h-app": "🎨 Appearance", "set-h-int": "🖥️ Console Interface", "set-h-notif": "🔔 Notifications", "set-h-adv": "🛠️ Advanced", "set-h-about": "ℹ️ About",
+            "btn-reset": "Reset", "lbl-ip": "IP Address", "lbl-port": "Port", "btn-save-conn": "Save & Connect",
+            "lbl-lang": "Language / Язык", "lbl-color-acc": "Accent Color", "lbl-color-inf": "Info Color", "lbl-color-warn": "Warn Color", "lbl-color-err": "Error Color",
+            "lbl-wrap": "Word Wrap", "lbl-show-time": "Show Time", "lbl-font": "Font Size",
+            "lbl-notif-en": "Enable Notifications", "lbl-sound-en": "Sound Alerts", "lbl-pos": "Screen Position",
+            "opt-br": "Bottom Right", "opt-tr": "Top Right", "opt-bl": "Bottom Left", "opt-tl": "Top Left",
+            "lbl-cust-sound": "Custom Sound (up to 2s)", "btn-choose-file": "🎵 Choose file...", "btn-test-notif": "Test Notification",
+            "lbl-dev": "Developer Mode", "lbl-debug": "Debug Mode", "lbl-interval": "Update Interval (ms)",
+            "ab-plug": "Plugin Version:", "ab-serv": "Server Version:", "ab-core": "Core:", "ab-author": "Author:", "ab-load": "Loading...",
+            "mod-target": "TARGET:", "ph-reason": "Enter punishment reason...", "ph-dur": "Permanent if empty", "btn-cancel": "Cancel", "lbl-by-ip": "By IP Address",
+            "btn-punished": "⚖️ Punished Players", "title-punished-list": "⚖️ Punished List", "title-log-hist": "📁 Log History",
+            "btn-unban": "Unban", "btn-unmute": "Unmute", "btn-del": "Delete", "msg-no-punish": "No punishments", "msg-no-logs": "No logs", "btn-dl": "Download",
+            "btn-upload": "📤 Upload file", "btn-save": "Save", "create_file": "Create file",
+            "server-settings-title": "Server Settings", "server-settings-desc": "Manage server.properties, whitelist and operators",
+            "site-settings-title": "Site Settings", "site-settings-desc": "Interface, colors, notifications and console", "btn-back": "⬅ Back",
+            "server-basic-title": "⚙️ Basic Settings", "server-name-label": "Server Name", "server-ip-label": "Server IP", "server-port-label": "Port",
+            "server-max-players-label": "Max Players", "server-view-dist-label": "View Distance", "server-sim-dist-label": "Simulation Distance",
+            "server-max-world-label": "Max World Size", "server-spawn-prot-label": "Spawn Protection", "server-online-mode-label": "Online mode",
+            "server-allow-flight-label": "Allow flight", "server-pvp-label": "PvP", "server-cmd-block-label": "Command blocks", "server-nether-label": "Allow Nether",
+            "server-hardcore-label": "Hardcore", "server-hide-online-label": "Hide online players", "server-monsters-label": "Spawn monsters",
+            "server-difficulty-label": "Difficulty", "difficulty-peaceful": "Peaceful", "difficulty-easy": "Easy", "difficulty-normal": "Normal", "difficulty-hard": "Hard",
+            "btn-save-server": "💾 Save Settings", "whitelist-title": "📝 Whitelist", "whitelist-enabled-label": "Enable Whitelist",
+            "whitelist-add-btn": "Add", "whitelist-save-btn": "💾 Save List", "ops-title": "👑 Operators (OP)", "ops-add-btn": "Add", "ops-save-btn": "💾 Save List",
+            "loading": "Loading...", "empty-list": "List is empty", "author-credits": "Creator TxT | Console<br>Discord - @txt.console",
+            "file-name": "Name", "file-size": "Size", "file-actions": "Actions", "btn-log-colors": "Log Colors ⚙️",
+            "editor-title": "Editing", "btn-cancel-editor": "Cancel", "btn-close": "Close", "editor-unsaved": "⚠ Unsaved changes",
+            "ph-search-punished": "Search by nickname...", "ph-search-logs": "Search by log name...", "log-colors-title": "Console Log Colors",
+            "conn-connecting": "Connecting", "conn-connected": "Connected successfully", "conn-error": "Connection error",
+            "notif-success": "Success", "notif-error": "Error", "notif-info": "System", "notif-warn": "Warning",
+            "msg-unsaved-confirm": "You have unsaved changes. Exit without saving?", "back_btn": "Back",
+            "msg-file-load-error": "Failed to load file list", "msg-upload-failed": "Failed to upload file", "msg-file-read-error": "Failed to read file",
+            "save-success": "File saved", "file-delete-success": "File deleted", "lang-ru": "Russian", "lang-en": "English",
+            "notif-srv-saved": "Settings saved. Restart required!", "notif-ops-saved": "Operators saved", "notif-wl-saved": "Whitelist saved",
+            "unsaved-modal-title": "⚠ Unsaved Changes", "unsaved-modal-desc": "You have modified server settings but haven't saved them.",
+            "btn-discard": "Discard", "btn-save-continue": "Save & Continue",
+            "search-results-title": "Search Results", "search-no-results": "Nothing found", "search-no-results-desc": "For query",
+            "search-console-desc": "View server logs, execute commands", "search-players-desc": "Manage online players, kick, ban",
+            "search-files-desc": "Server file manager, upload and edit", "search-settings-desc": "Manage WebConsole configuration",
+            "search-conn-desc": "IP address and port for connection", "search-app-desc": "Color scheme, accent colors, interface language",
+            "search-int-desc": "Font size, word wrap, time display", "search-notif-desc": "Enable notifications, sound, screen position",
+            "search-plugins-desc": "Install plugins from Modrinth", "sb-core": "Server Core", "sb-ver": "Server Version", "server_core_info": "Server Information",
+            "tt-srv-name": "Server name displayed in list", "tt-srv-ip": "Server IP address", "tt-srv-port": "Server port",
+            "tt-srv-max": "Maximum number of players", "tt-srv-view": "View distance (chunks)", "tt-srv-sim": "Simulation distance (chunks)",
+            "tt-srv-max-world": "Max world size radius", "tt-srv-spawn-prot": "Spawn protection radius", "tt-srv-online": "Online mode (premium authentication)",
+            "tt-srv-flight": "Allow flight on server", "tt-srv-pvp": "Enable PvP", "tt-srv-cmd": "Enable command blocks",
+            "tt-srv-nether": "Allow Nether", "tt-srv-hardcore": "Hardcore mode", "tt-srv-hide-online": "Hide online players in list",
+            "tt-srv-monsters": "Spawn hostile monsters", "tt-srv-diff": "Game difficulty", "tt-wl-en": "Enable whitelist",
+            "msg-err-col-text": "Color blends with text/background!", "tooltip_banned": "View banned players", "tooltip_upload": "Upload files to server",
+            "tooltip_create": "Create a new file", "tooltip_back": "Go back to previous folder", "label-path": "Path",
+            "plugins_title": "Plugin Search", "plugin_search_ph": "Enter plugin name...", "plugin_core": "Core", "plugin_version": "Version",
+            "plugin_hint": "Showing plugins for", "menu_plugins": "Plugins", "btn-install": "📦 Install", "btn-reinstall": "🔄 Reinstall",
+            "btn-delete": "🗑️ Delete", "plugin_install": "Install", "plugin_reinstall": "Reinstall", "plugin_delete": "Delete",
+            "modrinth_credit": "All plugins are taken from the official Modrinth website", "plugin-loading": "⏳ Searching for best plugins...",
+            "plugin-author": "Author", "plugin-downloads": "Downloads", "plugin-compatible": "✓ Compatible", "plugin-incompatible": "✗ Incompatible",
+            "plugin-success": "Installed!", "plugin-deleted": "Deleted!", "plugin-err-load": "⚠ Error searching plugins. Check connection.",
+            "plugin-not-found": "❌ Nothing found. Try another query.", "plugin-unavailable": "⛔ Unavailable",
+            "notif-unbanned": "Player {player} successfully unbanned!", "notif-unmuted": "Player {player} successfully unmuted!",
+            "modal-cmd-title": "📋 Command Directory", "modal-cmd-search": "Search command...",
+            "auth-title": "Web-Console", "auth-login-ph": "Login", "auth-pass-ph": "Password", "auth-btn": "Login",
+            "btn-logout": "Logout", "auth-remember": "Remember me", "auth-status-avail": "Available", "auth-status-unavail": "Unavailable", "auth-status-loading": "Loading...",
+            "server-unavailable-title": "Server unavailable",
+            "server-unavailable-desc": "The \"Plugins\" section requires a connection to the Minecraft server.",
+            "server-unavailable-desc-files": "File manager is unavailable without a server connection.",
+            "server-unavailable-retry": "Retry",
+            "auth-error-empty": "Error",
+            "auth-error-empty-desc": "Enter login and password",
+            "auth-error-invalid": "Error",
+            "auth-error-invalid-desc": "Invalid login or password",
+            "auth-error-blocked": "Warning",
+            "auth-error-blocked-desc": "Too many attempts. Wait {seconds} sec.",
+            "auth-error-server": "Error",
+            "auth-error-server-desc": "No connection to server",
+            "auth-success": "Success",
+            "auth-success-desc": "Authorization successful!",
+            "auth-logging-in": "Logging in..."
+        }
+    };
+
+    function t(key) {
+        const lang = localStorage.getItem('wcLanguage') || 'ru';
+        return translations[lang][key] || key;
+    }
+
+    function applyTranslations() {
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (key) el.innerHTML = t(key);
+        });
+        document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+            const key = el.getAttribute('data-i18n-ph');
+            if (key) el.placeholder = t(key);
+        });
+        document.querySelectorAll('[data-i18n-tt]').forEach(el => {
+            const key = el.getAttribute('data-i18n-tt');
+            if (key) el.setAttribute('data-tooltip', t(key));
+        });
+        document.querySelectorAll('select option[data-i18n]').forEach(opt => {
+            const key = opt.getAttribute('data-i18n');
+            if (key) opt.textContent = t(key);
+        });
+        updateSelectDisplays();
+        updateSettingsTitle();
+        const searchOverlay = document.getElementById('search-overlay');
+        if (searchOverlay && searchOverlay.classList.contains('active')) performGlobalSearch();
+    }
+
+    function changeLanguage() {
+        const lang = document.getElementById('set-language').value;
+        localStorage.setItem('wcLanguage', lang);
+        applyTranslations();
+        if (document.getElementById('auth-page').classList.contains('active')) {
+            document.getElementById('set-language-auth').value = lang;
+            updateSelectDisplays();
+            const loginBtn = document.querySelector('#auth-page .btn-orange');
+            if (loginBtn) loginBtn.innerHTML = t('auth-btn');
+        }
+    }
+
+    // ==================== ОСТАЛЬНЫЕ ФУНКЦИИ ====================
+    function performGlobalSearch() {
+        const query = document.getElementById('globalSearch').value.toLowerCase().trim();
+        if (!query) {
+            document.getElementById('search-overlay').classList.remove('active');
+            return;
+        }
+
+        const searchableItems = [
+            { id: 'console', title: t('nav-console'), desc: t('search-console-desc'), icon: '💻' },
+            { id: 'players', title: t('nav-players'), desc: t('search-players-desc'), icon: '👥' },
+            { id: 'files', title: t('nav-files'), desc: t('search-files-desc'), icon: '📁' },
+            { id: 'plugins', title: t('menu_plugins'), desc: t('search-plugins-desc'), icon: '🧩' },
+            { id: 'settings', title: t('nav-settings'), desc: t('search-settings-desc'), icon: '⚙️' }
+        ];
+
+        const results = searchableItems.filter(item =>
+            item.title.toLowerCase().includes(query) ||
+            item.desc.toLowerCase().includes(query)
+        );
+
+        const overlay = document.getElementById('search-overlay');
+        const container = document.getElementById('search-results-container');
+        const titleEl = document.getElementById('search-title-text');
+        if (titleEl) titleEl.innerHTML = '<span style="margin-right: 10px;">🔍</span>' + t('search-results-title');
+
+        if (results.length === 0) {
+            container.innerHTML = `<div class="search-empty" style="text-align: center; padding: 40px;"><span style="font-size: 3rem;">🔍❓</span><h3>${t('search-no-results')}</h3><p>${t('search-no-results-desc')} «<b>${escapeHtml(query)}</b>».</p></div>`;
+        } else {
+            container.innerHTML = results.map(res => `
+                <div class="search-result-item" onclick="closeSearchAndGo('${res.id}')">
+                    <div class="result-icon" style="font-size: 1.5rem;">${res.icon}</div>
+                    <div class="result-text">
+                        <h3>${res.title}</h3>
+                        <p>${res.desc}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        overlay.classList.add('active');
+    }
+
+    function closeSearchAndGo(sectionId) {
+        document.getElementById('globalSearch').value = '';
+        document.getElementById('search-overlay').classList.remove('active');
+        const navItems = document.querySelectorAll('.nav-item');
+        let matchedItem = null;
+        for (let item of navItems) {
+            if (item.getAttribute('onclick') && item.getAttribute('onclick').includes(`'${sectionId}'`)) {
+                matchedItem = item;
+                break;
+            }
+        }
+        switchPage(sectionId, matchedItem);
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function updateSelectDisplays() {
+        ['set-language', 'set-notif-pos', 'server-difficulty'].forEach(id => {
+            const select = document.getElementById(id);
+            const display = document.getElementById('display-' + id);
+            if (select && display) {
+                const opt = select.options[select.selectedIndex];
+                const icon = opt.getAttribute('data-icon') ? `<span style="margin-right:5px;">${opt.getAttribute('data-icon')}</span>` : '';
+                display.innerHTML = icon + (t(opt.getAttribute('data-i18n')) || opt.text);
+            }
+        });
+        const authSelect = document.getElementById('set-language-auth');
+        const authDisplay = document.getElementById('display-set-language-auth');
+        if (authSelect && authDisplay) {
+            const opt = authSelect.options[authSelect.selectedIndex];
+            const icon = opt.getAttribute('data-icon') ? `<span style="margin-right:5px;">${opt.getAttribute('data-icon')}</span>` : '';
+            authDisplay.innerHTML = icon + (t(opt.getAttribute('data-i18n')) || opt.text);
+        }
+    }
+
+    function updateSettingsTitle() {
+        const container = document.getElementById('settings-title-container');
+        if (currentSettingsPage === 'site') {
+            container.innerHTML = '⚙️ ' + t('nav-settings') + ' <span style="color: var(--accent); margin: 0 10px;">→</span> <span style="color: var(--text-main);">' + t('sub-site') + '</span>';
+        } else if (currentSettingsPage === 'server') {
+            container.innerHTML = '⚙️ ' + t('nav-settings') + ' <span style="color: var(--accent); margin: 0 10px;">→</span> <span style="color: var(--text-main);">' + t('sub-server') + '</span>';
+        } else {
+            container.innerHTML = '⚙️ ' + t('nav-settings');
+        }
+    }
+
+    function switchPage(pageName, navEl) {
+        if (currentSettingsPage === 'server' && isServerSettingsModified) {
+            pendingNavAction = () => performSwitchPage(pageName, navEl);
+            document.getElementById('unsavedSettingsModal').classList.add('active');
+            return;
+        }
+        performSwitchPage(pageName, navEl);
+    }
+
+    function performSwitchPage(pageName, navEl) {
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.content-section').forEach(el => el.classList.remove('active-section'));
+        if (navEl) navEl.classList.add('active');
+        const targetPage = document.getElementById('page-' + pageName);
+        if (targetPage) targetPage.classList.add('active-section');
+
+        const globalSearch = document.getElementById('globalSearch');
+        if (globalSearch) globalSearch.value = '';
+
+        const searchOverlay = document.getElementById('search-overlay');
+        if (searchOverlay) searchOverlay.classList.remove('active');
+
+        if (pageName === 'players') fetchPlayers();
+        if (pageName === 'files') {
+            if (!isServerAvailable) updateFilesSection();
+            else loadFileList('');
+        }
+        if (pageName === 'plugins') {
+            if (!isServerAvailable) updatePluginsSection();
+            else if (typeof searchPlugins === 'function') setTimeout(() => { if (document.getElementById('pluginSearch')?.value) searchPlugins(); }, 100);
+        }
+
+        if (pageName !== 'settings') {
+            currentSettingsPage = 'main';
+            document.getElementById('site-settings-container').style.display = 'none';
+            document.getElementById('server-settings-container').style.display = 'none';
+            document.getElementById('settings-main-menu').style.display = 'grid';
+        } else {
+            if (currentSettingsPage === 'main') {
+                document.getElementById('site-settings-container').style.display = 'none';
+                document.getElementById('server-settings-container').style.display = 'none';
+                document.getElementById('settings-main-menu').style.display = 'grid';
+            } else if (currentSettingsPage === 'site') {
+                document.getElementById('settings-main-menu').style.display = 'none';
+                document.getElementById('server-settings-container').style.display = 'none';
+                document.getElementById('site-settings-container').style.display = 'flex';
+            } else if (currentSettingsPage === 'server') {
+                document.getElementById('settings-main-menu').style.display = 'none';
+                document.getElementById('site-settings-container').style.display = 'none';
+                document.getElementById('server-settings-container').style.display = 'flex';
+            }
+        }
+        updateSettingsTitle();
+    }
+
+    function openSiteSettings() {
+        currentSettingsPage = 'site';
+        document.getElementById('settings-main-menu').style.display = 'none';
+        document.getElementById('site-settings-container').style.display = 'flex';
+        document.getElementById('server-settings-container').style.display = 'none';
+        updateSettingsTitle();
+    }
+
+    function openServerSettings() {
+        currentSettingsPage = 'server';
+        document.getElementById('settings-main-menu').style.display = 'none';
+        document.getElementById('site-settings-container').style.display = 'none';
+        document.getElementById('server-settings-container').style.display = 'flex';
+        updateSettingsTitle();
+        loadServerSettings();
+    }
+
+    function backToSettingsMenu() {
+        if (currentSettingsPage === 'server' && isServerSettingsModified) {
+            pendingNavAction = () => {
+                currentSettingsPage = 'main';
+                document.getElementById('site-settings-container').style.display = 'none';
+                document.getElementById('server-settings-container').style.display = 'none';
+                document.getElementById('settings-main-menu').style.display = 'grid';
+                updateSettingsTitle();
+            };
+            document.getElementById('unsavedSettingsModal').classList.add('active');
+            return;
+        }
+        currentSettingsPage = 'main';
+        document.getElementById('site-settings-container').style.display = 'none';
+        document.getElementById('server-settings-container').style.display = 'none';
+        document.getElementById('settings-main-menu').style.display = 'grid';
+        updateSettingsTitle();
+    }
+
+    function handleUnsavedDiscard() {
+        isServerSettingsModified = false;
+        closeModal('unsavedSettingsModal');
+        loadServerSettings();
+        if (pendingNavAction) { pendingNavAction(); pendingNavAction = null; }
+    }
+
+    async function handleUnsavedSave() {
+        await saveServerProperties();
+        isServerSettingsModified = false;
+        closeModal('unsavedSettingsModal');
+        if (pendingNavAction) { pendingNavAction(); pendingNavAction = null; }
+    }
+
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    function openSelectModal(selectId, titleKey, defaultVal) {
+        const select = document.getElementById(selectId);
+        document.getElementById('selectModalTitle').textContent = t(titleKey);
+        const body = document.getElementById('selectModalBody');
+        body.innerHTML = '';
+        Array.from(select.options).forEach(opt => {
+            const div = document.createElement('div');
+            div.className = 'select-item' + (opt.value === select.value ? ' active' : '');
+            const icon = opt.getAttribute('data-icon') ? `<span style="margin-right:8px;">${opt.getAttribute('data-icon')}</span>` : '';
+            div.innerHTML = icon + (t(opt.getAttribute('data-i18n')) || opt.text);
+            div.onclick = () => { select.value = opt.value; if (select.onchange) select.onchange(); updateSelectDisplays(); closeModal('customSelectModal'); };
+            body.appendChild(div);
+        });
+        document.getElementById('customSelectModal').classList.add('active');
+    }
+
+    function hexToRgb(hex) {
+        let r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+        return { r, g, b };
+    }
+
+    function isColorTooLight(hex) {
+        const { r, g, b } = hexToRgb(hex);
+        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+        return luminance > 0.85 || luminance < 0.15;
+    }
+
+    function checkColorsAndApply() {
+        const accent = document.getElementById('set-color-accent').value;
+        if (isColorTooLight(accent)) {
+            triggerNotification(t('notif-warn'), t('msg-err-col-text'), 'warn');
+            const root = document.documentElement;
+            const currentAccent = getComputedStyle(root).getPropertyValue('--accent').trim();
+            document.getElementById('set-color-accent').value = currentAccent || '#ff7b00';
+            return;
+        }
+        applyAppearance();
+    }
+
+    function applyAppearance() {
+        const root = document.documentElement;
+        const accent = document.getElementById('set-color-accent').value;
+        const { r, g, b } = hexToRgb(accent);
+        root.style.setProperty('--accent', accent);
+        root.style.setProperty('--accent-rgb', `${r}, ${g}, ${b}`);
+        root.style.setProperty('--accent-glow', `rgba(${r}, ${g}, ${b}, 0.5)`);
+        root.style.setProperty('--bg-glass-hover', `rgba(${r}, ${g}, ${b}, 0.1)`);
+        let rH = Math.min(255, r + 40), gH = Math.min(255, g + 40), bH = Math.min(255, b + 40);
+        root.style.setProperty('--accent-hover', `rgb(${rH}, ${gH}, ${bH})`);
+        root.style.setProperty('--border-main', `rgba(${r}, ${g}, ${b}, 0.4)`);
+
+        const infoColor = document.getElementById('set-color-info').value;
+        const warnColor = document.getElementById('set-color-warn').value;
+        const errorColor = document.getElementById('set-color-error').value;
+        root.style.setProperty('--info-color', infoColor);
+        root.style.setProperty('--warn-color', warnColor);
+        root.style.setProperty('--error-color', errorColor);
+
+        const infoRgb = hexToRgb(infoColor);
+        const warnRgb = hexToRgb(warnColor);
+        const errorRgb = hexToRgb(errorColor);
+        root.style.setProperty('--info-color-rgb', `${infoRgb.r}, ${infoRgb.g}, ${infoRgb.b}`);
+        root.style.setProperty('--warn-color-rgb', `${warnRgb.r}, ${warnRgb.g}, ${warnRgb.b}`);
+        root.style.setProperty('--error-color-rgb', `${errorRgb.r}, ${errorRgb.g}, ${errorRgb.b}`);
+
+        saveSettings();
+        updateFaviconColor(accent);
+    }
+
+    function updateFaviconColor(color) {
+        const encodedColor = encodeURIComponent(color);
+        const svgIcon = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="60" height="60" x="2" y="2" rx="14" fill="%23050505" stroke="${encodedColor}" stroke-width="4"/><text x="50%" y="54%" font-family="Consolas, monospace" font-size="28" font-weight="bold" fill="${encodedColor}" text-anchor="middle" dominant-baseline="middle">&gt;_</text></svg>`;
+        const favicon = document.getElementById('favicon');
+        if (favicon) favicon.href = svgIcon;
+    }
+
+    function resetLogColors() {
+        document.getElementById('set-color-info').value = '#64c8ff';
+        document.getElementById('set-color-warn').value = '#ffc800';
+        document.getElementById('set-color-error').value = '#ff5050';
+        applyAppearance();
+        triggerNotification(t('notif-success'), t('notif-info'), 'success');
+    }
+
+    function resetAppearanceSettings() {
+        const langSelect = document.getElementById('set-language');
+        const langChanged = langSelect.value !== 'ru';
+        if (langChanged) langSelect.value = 'ru';
+
+        const defaultColors = {
+            'set-color-accent': '#ff7b00',
+            'set-color-info': '#64c8ff',
+            'set-color-warn': '#ffc800',
+            'set-color-error': '#ff5050'
+        };
+
+        let colorChanged = false;
+        for (const [id, val] of Object.entries(defaultColors)) {
+            const el = document.getElementById(id);
+            if (el && el.value !== val) {
+                el.value = val;
+                colorChanged = true;
+            }
+        }
+
+        if (!langChanged && !colorChanged) {
+            triggerNotification(t('notif-info'), "Настройки и так стоят по умолчанию.", 'info');
+            return;
+        }
+
+        if (langChanged) changeLanguage();
+        if (colorChanged) applyAppearance();
+        updateSelectDisplays();
+        triggerNotification(t('notif-success'), "Настройки оформления сброшены!", 'success');
+    }
+
+    function saveSettings() {
+        const s = {
+            appearance: {
+                accent: document.getElementById('set-color-accent').value,
+                info: document.getElementById('set-color-info').value,
+                warn: document.getElementById('set-color-warn').value,
+                error: document.getElementById('set-color-error').value
+            },
+            interface: {
+                wrap: document.getElementById('set-wrap').checked,
+                time: document.getElementById('set-time').checked,
+                fontSize: parseInt(document.getElementById('font-size-val').textContent)
+            },
+            advanced: {
+                dev: document.getElementById('set-dev').checked,
+                debug: document.getElementById('set-debug').checked,
+                interval: parseInt(document.getElementById('set-interval').value) || 1000
+            },
+            notifications: {
+                enabled: document.getElementById('set-notif-en').checked,
+                sound: document.getElementById('set-sound-en').checked,
+                pos: document.getElementById('set-notif-pos').value
+            }
+        };
+        localStorage.setItem('wcSettings', JSON.stringify(s));
+    }
+
+    function loadSettings() {
+        const sStr = localStorage.getItem('wcSettings');
+        if (sStr) {
+            const s = JSON.parse(sStr);
+            if (s.appearance) {
+                document.getElementById('set-color-accent').value = s.appearance.accent || '#ff7b00';
+                document.getElementById('set-color-info').value = s.appearance.info || '#64c8ff';
+                document.getElementById('set-color-warn').value = s.appearance.warn || '#ffc800';
+                document.getElementById('set-color-error').value = s.appearance.error || '#ff5050';
+                applyAppearance();
+            }
+            if (s.interface) {
+                document.getElementById('set-wrap').checked = s.interface.wrap || false;
+                document.getElementById('set-time').checked = s.interface.time !== false;
+                document.getElementById('font-size-val').textContent = (s.interface.fontSize || 13) + 'px';
+                applyInterface();
+            }
+            if (s.advanced) {
+                document.getElementById('set-dev').checked = s.advanced.dev || false;
+                document.getElementById('set-debug').checked = s.advanced.debug || false;
+                document.getElementById('set-interval').value = s.advanced.interval || 1000;
+            }
+            if (s.notifications) {
+                document.getElementById('set-notif-en').checked = s.notifications.enabled !== false;
+                document.getElementById('set-sound-en').checked = s.notifications.sound || false;
+                document.getElementById('set-notif-pos').value = s.notifications.pos || 'notif-bottom-right';
+                applyNotificationPos();
+            }
+        }
+        document.getElementById('set-language').value = localStorage.getItem('wcLanguage') || 'ru';
+        customAudioData = localStorage.getItem('wcCustomSound') || null;
+        if (!customAudioData) {
+            document.getElementById('set-sound-en').disabled = true;
+            document.getElementById('set-sound-en').checked = false;
+        } else {
+            document.getElementById('set-sound-en').disabled = false;
+        }
+        applyTranslations();
+        updateSelectDisplays();
+
+        const currentAccent = document.getElementById('set-color-accent').value;
+        updateFaviconColor(currentAccent);
+    }
+
+    function applyInterface() {
+        const container = document.getElementById('log-container');
+        const wrap = document.getElementById('set-wrap').checked;
+        container.style.whiteSpace = wrap ? 'pre-wrap' : 'pre';
+        const size = document.getElementById('font-size-val').textContent;
+        document.documentElement.style.setProperty('--console-font-size', size);
+        applyFilters();
+        saveSettings();
+    }
+
+    function resetConsoleInterface() {
+        const wrap = document.getElementById('set-wrap').checked;
+        const time = document.getElementById('set-time').checked;
+        const size = document.getElementById('font-size-val').textContent;
+
+        if (wrap === false && time === true && size === '13px') {
+            triggerNotification(t('notif-info'), "Настройки и так стоят по умолчанию.", 'info');
+            return;
+        }
+
+        document.getElementById('set-wrap').checked = false;
+        document.getElementById('set-time').checked = true;
+        document.getElementById('font-size-val').textContent = '13px';
+        applyInterface();
+        saveSettings();
+        triggerNotification(t('notif-info'), "Настройки консоли сброшены", 'success');
+    }
+
+    function changeFontSize(delta) {
+        let size = parseInt(document.getElementById('font-size-val').textContent);
+        size += delta;
+        if (size < 10) size = 10;
+        if (size > 24) size = 24;
+        document.getElementById('font-size-val').textContent = size + 'px';
+        applyInterface();
+    }
+
+    function applyNotificationPos() {
+        document.getElementById('notif-container').className = document.getElementById('set-notif-pos').value;
+        saveSettings();
+    }
+
+    function changeNumber(inputId, delta) {
+        let el = document.getElementById(inputId);
+        if (!el) return;
+        let val = parseInt(el.value) || 0;
+        val += delta;
+        if (inputId === 'server-max-players') { if (val < 1) val = 1; if (val > 1000) val = 1000; }
+        else if (inputId === 'server-port' || inputId === 'set-port') { if (val < 1) val = 1; if (val > 65535) val = 65535; }
+        else if (inputId === 'view-distance' || inputId === 'simulation-distance') { if (val < 2) val = 2; if (val > 32) val = 32; }
+        else if (inputId === 'spawn-protection') { if (val < 0) val = 0; if (val > 1000) val = 1000; }
+        else if (inputId === 'max-world-size') { if (val < 1) val = 1; if (val > 29999984) val = 29999984; }
+        else if (inputId === 'set-interval') { if (val < 500) val = 500; if (val > 10000) val = 10000; }
+        el.value = val;
+        if (inputId === 'set-interval') updateInterval();
+        else markSettingsChanged();
+    }
+
+    function markSettingsChanged() { isServerSettingsModified = true; }
+
+    function updateInterval() { saveSettings(); startIntervals(); }
+
+    function startIntervals() {
+        if (logFetchIntervalId) clearInterval(logFetchIntervalId);
+        if (statusFetchIntervalId) clearInterval(statusFetchIntervalId);
+        const interval = parseInt(document.getElementById('set-interval').value) || 1000;
+        updateLogs(); updateServerStatus();
+        logFetchIntervalId = setInterval(updateLogs, interval);
+        statusFetchIntervalId = setInterval(updateServerStatus, interval * 2);
+    }
+
+    function updateProgressBar(barId, percentage) {
+        const bar = document.getElementById(barId);
+        if (!bar) return;
+        bar.style.width = percentage + '%';
+        let color = '#ff4444';
+        if (percentage <= 33) color = '#ffc800';
+        else if (percentage <= 66) color = '#ff7b00';
+        bar.style.backgroundColor = color;
+        bar.style.boxShadow = `0 0 10px ${color}`;
+    }
+
+    function triggerNotification(title, message, type = 'info') {
+    if (!document.getElementById('set-notif-en').checked) return;
+    const container = document.getElementById('notif-container');
+
+    // Удаляем старые уведомления, если их больше или равно 5
+    const notifications = container.querySelectorAll('.notification');
+    if (notifications.length >= 5) {
+        const oldest = notifications[0];
+        oldest.classList.add('fade-out');
+        setTimeout(() => {
+            if (oldest.parentNode) oldest.remove();
+        }, 300);
+    }
+
+    const notif = document.createElement('div');
+    notif.className = `notification notif-${type}`;
+    notif.innerHTML = `<div class="notif-title">${title}</div><div class="notif-desc">${message}</div>`;
+    container.appendChild(notif);
+
+    // Дополнительная защита: если после добавления стало больше 5, удаляем лишние
+    const afterAdd = container.querySelectorAll('.notification');
+    if (afterAdd.length > 5) {
+        const toRemove = Array.from(afterAdd).slice(0, afterAdd.length - 5);
+        toRemove.forEach(notif => {
+            notif.classList.add('fade-out');
+            setTimeout(() => {
+                if (notif.parentNode) notif.remove();
+            }, 300);
+        });
+    }
+
+    if (document.getElementById('set-sound-en').checked && customAudioData) {
+        const audio = new Audio(customAudioData);
+        audio.volume = 0.5;
+        audio.play().catch(() => {});
+    }
+
+    setTimeout(() => {
+        notif.classList.add('fade-out');
+        setTimeout(() => {
+            if (notif.parentNode) notif.remove();
+        }, 300);
+    }, 4000);
+}
+
+    function testNotification() {
+        if (!customAudioData) {
+            triggerNotification(t('notif-warn'), "Сначала выберите звуковой файл", 'warn');
+            return;
+        }
+        triggerNotification(t('notif-info'), "Тестовое уведомление", 'info');
+    }
+
+    function saveConnectionSettings() {
+        saveSettings();
+        const ip = document.getElementById('set-ip').value;
+        const port = document.getElementById('set-port').value;
+        window.location.href = `http://${ip}:${port}`;
+    }
+
+    function applyFilters() {
+        const term = document.getElementById('logSearch').value.toLowerCase();
+        const lines = document.querySelectorAll('.log-line');
+        const showTime = document.getElementById('set-time').checked;
+        lines.forEach(line => {
+            const level = line.getAttribute('data-level');
+            const text = line.textContent.toLowerCase();
+            let showMatch = true;
+            if (currentLogFilter === 'info' && level !== 'info') showMatch = false;
+            if (currentLogFilter === 'warn' && level !== 'warn') showMatch = false;
+            if (currentLogFilter === 'error' && level !== 'error' && level !== 'fatal') showMatch = false;
+            if (term && !text.includes(term)) showMatch = false;
+            line.style.display = showMatch ? 'block' : 'none';
+            const timeEl = line.querySelector('.time');
+            if (timeEl) timeEl.style.display = showTime ? 'inline' : 'none';
+        });
+        if (autoScroll) document.getElementById('log-container').scrollTop = document.getElementById('log-container').scrollHeight;
+    }
+
+    function filterLogs(type, btnEl) {
+        currentLogFilter = type;
+        document.querySelectorAll('.tab').forEach(t => t.className = 'tab');
+        btnEl.classList.add('active', `active-${type}`);
+        applyFilters();
+    }
+
+    function clearConsole() {
+        if (confirm("Очистить консоль?")) document.getElementById('log-container').innerHTML = '';
+    }
+
+    function toggleAutoScroll() {
+        autoScroll = !autoScroll;
+        const btn = document.getElementById('btn-autoscroll');
+        if (autoScroll) { btn.classList.add('active-icon'); document.getElementById('log-container').scrollTop = document.getElementById('log-container').scrollHeight; }
+        else { btn.classList.remove('active-icon'); }
+    }
+
+    function downloadLogs() {
+        const lines = Array.from(document.querySelectorAll('.log-line')).map(l => l.textContent).join('\n');
+        if (!lines) return;
+        const blob = new Blob([lines], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = `server-logs-${new Date().toISOString().slice(0, 10)}.txt`; a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    async function updateLogs() {
+        try {
+            const response = await fetch(`${apiBaseUrl}/api/logs?lastId=${lastLogId}`);
+            if (!response.ok) throw new Error();
+            const logs = await response.json();
+            setConnectionStatus(true);
+            const container = document.getElementById('log-container');
+            if (logs.length > 0) {
+                logs.forEach(log => {
+                    const div = document.createElement('div');
+                    div.className = 'log-line';
+                    const cleanMsg = log.message.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '').replace(/§[0-9a-fk-orx]/gi, '');
+                    let level = log.level ? log.level.toLowerCase() : 'info';
+                    const lMsg = cleanMsg.toLowerCase();
+                    if (lMsg.includes("error") || lMsg.includes("exception") || lMsg.includes("failed") || lMsg.includes("unknown command") || lMsg.includes("неизвестная команда")) {
+                        if (level === 'info') level = 'error';
+                    } else if (lMsg.includes("warn")) {
+                        if (level === 'info') level = 'warn';
+                    }
+                    div.setAttribute('data-level', level);
+                    if (level === 'info') div.classList.add('log-info');
+                    if (level === 'warn') div.classList.add('log-warn');
+                    if (level === 'error' || level === 'fatal' || level === 'severe') div.classList.add('log-error');
+                    div.innerHTML = `<span class="time">[${log.time}]</span> ${cleanMsg}`;
+                    container.appendChild(div);
+                    lastLogId = log.id;
+                });
+                applyFilters();
+            }
+        } catch (e) { setConnectionStatus(false); }
+    }
+
+    async function sendCommand() {
+        const input = document.getElementById('cmdInput');
+        const cmd = input.value.trim();
+        if (!cmd || !isConnected) return;
+        input.value = '';
+        if (!commandHistory.includes(cmd)) { commandHistory.unshift(cmd); if (commandHistory.length > 8) commandHistory.pop(); renderHistory(); }
+        try {
+            await fetch(apiBaseUrl + '/api/command', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ command: cmd }) });
+            setTimeout(updateLogs, 50);
+        } catch (e) {}
+    }
+
+    function renderHistory() {
+        const histContainer = document.getElementById('history-container');
+        histContainer.innerHTML = '';
+        if (commandHistory.length > 0) {
+            const clearBtn = document.createElement('div');
+            clearBtn.className = 'history-pill';
+            clearBtn.style.cssText = 'color: var(--danger); border-color: var(--danger); font-weight: bold; margin-right: 15px;';
+            clearBtn.innerHTML = `🗑️ Очистить историю`;
+            clearBtn.onclick = () => { commandHistory = []; renderHistory(); };
+            histContainer.appendChild(clearBtn);
+        }
+        commandHistory.forEach(cmd => {
+            const pill = document.createElement('div'); pill.className = 'history-pill'; pill.textContent = cmd;
+            pill.onclick = () => { document.getElementById('cmdInput').value = cmd; document.getElementById('cmdInput').focus(); };
+            histContainer.appendChild(pill);
+        });
+    }
+
+    async function openHistoryLogs() {
+        document.getElementById('logHistoryModal').classList.add('active');
+        fetchLogHistory();
+    }
+
+    async function fetchLogHistory() {
+        const tbody = document.getElementById('log-history-body');
+        tbody.innerHTML = `<tr><td style="text-align:center">${t('loading')}</td></tr>`;
+        try {
+            const res = await fetch(apiBaseUrl + '/api/logs/history');
+            allLogsHistory = await res.json();
+            renderLogsHistory(allLogsHistory);
+        } catch (e) {}
+    }
+
+    function renderLogsHistory(files) {
+        const tbody = document.getElementById('log-history-body');
+        tbody.innerHTML = '';
+        if (files.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="3" style="text-align:center">${t('msg-no-logs')}</td></tr>`;
+            return;
+        }
+        files.forEach(f => {
+            const date = new Date(f.date).toLocaleString();
+            const size = (f.size / 1024).toFixed(1) + ' KB';
+            tbody.innerHTML += `
+                <tr>
+                    <td style="font-family:monospace; color:var(--accent)">${f.name} <br><span style="font-size:11px; color:var(--text-muted)">${date}</span></td>
+                    <td style="font-size:12px; color:var(--text-muted); text-align:right;">${size}</td>
+                    <td style="text-align:right; min-width: 140px;">
+                        <a href="${apiBaseUrl}/api/logs/download?file=${f.name}${getDownloadToken()}" target="_blank" class="btn-sm" style="background:var(--accent); color:#000; text-decoration:none;">${t('btn-dl')}</a>
+                        <button class="btn-sm btn-ban" onclick="deleteLog('${f.name}')">${t('btn-del')}</button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    function filterLogsHistory() {
+        const searchTerm = document.getElementById('logsHistorySearch').value.toLowerCase();
+        const filtered = allLogsHistory.filter(f => f.name.toLowerCase().includes(searchTerm));
+        renderLogsHistory(filtered);
+    }
+
+    async function deleteLog(filename) {
+        if (confirm(`Удалить лог ${filename}?`)) {
+            await fetch(apiBaseUrl + '/api/logs/action', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete', file: filename }) });
+            fetchLogHistory();
+        }
+    }
+
+    async function updateServerStatus() {
+        if (!isConnected) return;
+        try {
+            const response = await fetch(apiBaseUrl + '/api/status');
+            const data = await response.json();
+            document.getElementById('stat-tps').textContent = data.tps;
+            document.getElementById('stat-uptime').textContent = data.uptime;
+            document.getElementById('stat-players-used').textContent = data.playersOnline;
+            document.getElementById('stat-players-max').textContent = data.playersMax;
+            document.getElementById('page-player-count').textContent = `${data.playersOnline} / ${data.playersMax}`;
+            updateProgressBar('bar-players', data.playersPerc);
+            document.getElementById('stat-ram-used').textContent = (data.ramUsed / 1024).toFixed(1);
+            document.getElementById('stat-ram-max').textContent = (data.ramMax / 1024).toFixed(1);
+            updateProgressBar('bar-ram', parseFloat(data.ramPerc));
+            document.getElementById('stat-disk-used').textContent = data.diskUsed;
+            document.getElementById('stat-disk-max').textContent = data.diskMax;
+            updateProgressBar('bar-disk', parseFloat(data.diskPerc));
+            document.getElementById('stat-cpu-used').textContent = data.cpuUsed;
+            updateProgressBar('bar-cpu', parseFloat(data.cpuPerc));
+            if (data.pluginVersion) document.getElementById('about-plugin-ver').textContent = data.pluginVersion;
+            if (data.serverVersion) document.getElementById('about-server-ver').textContent = data.serverVersion;
+            if (data.serverName) {
+                document.getElementById('about-core').textContent = data.serverName;
+                document.getElementById('settings-core-val').textContent = data.serverName;
+            }
+            if (data.serverVersion) {
+                const versionShort = data.serverVersion.split(' ')[0] || data.serverVersion;
+                document.getElementById('settings-ver-val').textContent = versionShort;
+            }
+        } catch (e) {}
+    }
+
+    function setConnectionStatus(online) {
+        const dot = document.getElementById('status-dot');
+        const text = document.getElementById('connection-status');
+        const overlay = document.getElementById('conn-overlay');
+        const icon = document.getElementById('conn-icon');
+        const connText = document.getElementById('conn-text');
+
+        if (online) {
+            dot.className = "status-dot online";
+            text.textContent = t('status-online');
+            text.style.color = "var(--success)";
+
+            if (!isConnected) {
+                overlay.classList.remove('connecting', 'error');
+                overlay.classList.add('active', 'connected');
+                icon.innerHTML = '✓';
+                connText.innerHTML = `<span id="conn-status-label">${t('conn-connected')}</span>`;
+                setTimeout(() => { overlay.classList.remove('active'); }, 2000);
+
+                if (!isConnectedNotified) {
+                    triggerNotification(t('notif-success'), t('conn-connected'), 'success');
+                    isConnectedNotified = true;
+                }
+            }
+            isConnected = true;
+        } else {
+            isConnected = false;
+            dot.className = "status-dot";
+            text.textContent = t('status-offline');
+            text.style.color = "var(--danger)";
+            overlay.classList.remove('connecting', 'connected');
+            overlay.classList.add('active', 'error');
+            icon.innerHTML = '⚠';
+            connText.innerHTML = `<span id="conn-status-label">${t('conn-error')}</span>`;
+            isConnectedNotified = false;
+        }
+    }
+
+    function confirmAction(action) {
+        if (confirm(`Send -> ${action}? Server will be saved automatically.`)) {
+            fetch(apiBaseUrl + '/api/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: action }) });
+        }
+    }
+
+    async function fetchServerCommands() {
+        try { const res = await fetch(apiBaseUrl + '/api/commands'); if (res.ok) serverCommands = await res.json(); } catch (e) {}
+    }
+
+    async function openCommandsModal() {
+        if (serverCommands.length === 0) {
+            await fetchServerCommands();
+        }
+        renderCommandsList(serverCommands);
+        document.getElementById('cmdSearchInput').value = '';
+        document.getElementById('commandsModal').classList.add('active');
+        setTimeout(() => document.getElementById('cmdSearchInput').focus(), 100);
+    }
+
+    function renderCommandsList(cmds) {
+        const container = document.getElementById('commandsListContainer');
+        if (cmds.length === 0) {
+            container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 20px;">Команды не найдены</div>`;
+            return;
+        }
+        container.innerHTML = cmds.map(c => `
+            <div class="history-pill" style="text-align: left; padding: 10px 15px; font-size: 14px; margin-bottom: 2px;" onclick="insertCommand('${c.replace(/'/g, "\\'")}')">
+                <span style="color: var(--accent);">/</span>${escapeHtml(c)}
+            </div>
+        `).join('');
+    }
+
+    function filterCommandsList() {
+        const q = document.getElementById('cmdSearchInput').value.toLowerCase();
+        renderCommandsList(serverCommands.filter(c => c.toLowerCase().includes(q)));
+    }
+
+    function insertCommand(cmd) {
+        const input = document.getElementById('cmdInput');
+        input.value = cmd + ' ';
+        input.focus();
+        closeModal('commandsModal');
+    }
+
+    document.getElementById('cmdInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') sendCommand();
+        else if (e.key === 'Tab') {
+            e.preventDefault();
+            openCommandsModal();
+        }
+    });
+
+    document.getElementById('set-sound-file').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const label = document.getElementById('file-label-text');
+        if (!file) { label.innerHTML = t('btn-choose-file'); return; }
+        label.innerHTML = `🎵 ${file.name}`;
+        const audio = new Audio(URL.createObjectURL(file));
+        audio.onloadedmetadata = function() {
+            if (audio.duration > 2.5) {
+                e.target.value = '';
+                label.innerHTML = t('btn-choose-file');
+                triggerNotification(t('notif-error'), 'Файл слишком длинный (>2 сек)', 'error');
+            } else {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    customAudioData = ev.target.result;
+                    localStorage.setItem('wcCustomSound', customAudioData);
+                    document.getElementById('set-sound-en').disabled = false;
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+    });
+
+    document.getElementById('set-sound-en').addEventListener('change', function(e) {
+        if (this.checked && !customAudioData) {
+            this.checked = false;
+            triggerNotification(t('notif-warn'), "Сначала выберите звуковой файл", 'warn');
+        } else {
+            saveSettings();
+        }
+    });
+
+    async function loadServerSettings() {
+        isServerSettingsModified = false;
+        try {
+            const res = await fetch(apiBaseUrl + '/api/server/properties');
+            if (res.ok) {
+                const data = await res.json();
+                document.getElementById('server-name').value = data['server-name'] || 'A Minecraft Server';
+                document.getElementById('server-ip-addr').value = data['server-ip'] || '';
+                document.getElementById('server-port').value = data['server-port'] || 25565;
+                document.getElementById('server-max-players').value = data['max-players'] || 20;
+                document.getElementById('view-distance').value = data['view-distance'] || 10;
+                document.getElementById('simulation-distance').value = data['simulation-distance'] || 10;
+                document.getElementById('max-world-size').value = data['max-world-size'] || 29999984;
+                document.getElementById('spawn-protection').value = data['spawn-protection'] || 16;
+                document.getElementById('server-online-mode').checked = data['online-mode'] === 'true';
+                document.getElementById('server-allow-flight').checked = data['allow-flight'] === 'true';
+                document.getElementById('server-pvp').checked = data['pvp'] === 'true';
+                document.getElementById('enable-command-block').checked = data['enable-command-block'] === 'true';
+                document.getElementById('allow-nether').checked = data['allow-nether'] !== 'false';
+                document.getElementById('hardcore').checked = data['hardcore'] === 'true';
+                document.getElementById('hide-online-players').checked = data['hide-online-players'] === 'true';
+                document.getElementById('spawn-monsters').checked = data['spawn-monsters'] !== 'false';
+                document.getElementById('server-difficulty').value = data['difficulty'] || 'normal';
+            }
+        } catch (e) {}
+
+        try {
+            const wlRes = await fetch(apiBaseUrl + '/api/whitelist');
+            if (wlRes.ok) currentWhitelist = await wlRes.json();
+            const wlEnRes = await fetch(apiBaseUrl + '/api/whitelist/enabled');
+            if (wlEnRes.ok) document.getElementById('whitelist-enabled').checked = await wlEnRes.json();
+            renderWhitelist();
+        } catch (e) { currentWhitelist = []; renderWhitelist(); }
+
+        try {
+            const opRes = await fetch(apiBaseUrl + '/api/ops');
+            if (opRes.ok) currentOps = await opRes.json();
+            renderOps();
+        } catch (e) { currentOps = []; renderOps(); }
+        updateSelectDisplays();
+    }
+
+    async function saveServerProperties() {
+        const props = {
+            'server-name': document.getElementById('server-name').value,
+            'server-ip': document.getElementById('server-ip-addr').value,
+            'server-port': document.getElementById('server-port').value,
+            'max-players': document.getElementById('server-max-players').value,
+            'view-distance': document.getElementById('view-distance').value,
+            'simulation-distance': document.getElementById('simulation-distance').value,
+            'max-world-size': document.getElementById('max-world-size').value,
+            'spawn-protection': document.getElementById('spawn-protection').value,
+            'online-mode': document.getElementById('server-online-mode').checked,
+            'allow-flight': document.getElementById('server-allow-flight').checked,
+            'pvp': document.getElementById('server-pvp').checked,
+            'enable-command-block': document.getElementById('enable-command-block').checked,
+            'allow-nether': document.getElementById('allow-nether').checked,
+            'hardcore': document.getElementById('hardcore').checked,
+            'hide-online-players': document.getElementById('hide-online-players').checked,
+            'spawn-monsters': document.getElementById('spawn-monsters').checked,
+            'difficulty': document.getElementById('server-difficulty').value
+        };
+        try {
+            await fetch(apiBaseUrl + '/api/server/properties', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(props) });
+            triggerNotification(t('notif-info'), t('notif-srv-saved'), 'success');
+            isServerSettingsModified = false;
+        } catch (e) {
+            triggerNotification(t('notif-info'), 'Saved locally (server not responding)', 'info');
+        }
+    }
+
+    function resetServerProperties() {
+        const isDefault =
+            document.getElementById('server-name').value === 'A Minecraft Server' &&
+            document.getElementById('server-ip-addr').value === '' &&
+            document.getElementById('server-port').value == 25565 &&
+            document.getElementById('server-max-players').value == 20 &&
+            document.getElementById('view-distance').value == 10 &&
+            document.getElementById('simulation-distance').value == 10 &&
+            document.getElementById('max-world-size').value == 29999984 &&
+            document.getElementById('spawn-protection').value == 16 &&
+            document.getElementById('server-online-mode').checked === true &&
+            document.getElementById('server-allow-flight').checked === false &&
+            document.getElementById('server-pvp').checked === true &&
+            document.getElementById('enable-command-block').checked === false &&
+            document.getElementById('allow-nether').checked === true &&
+            document.getElementById('hardcore').checked === false &&
+            document.getElementById('hide-online-players').checked === false &&
+            document.getElementById('spawn-monsters').checked === true &&
+            document.getElementById('server-difficulty').value === 'normal';
+
+        if (isDefault) {
+            triggerNotification(t('notif-info'), "Настройки и так стоят по умолчанию.", 'info');
+            return;
+        }
+
+        if (confirm('Reset server settings to defaults?')) {
+            document.getElementById('server-name').value = 'A Minecraft Server';
+            document.getElementById('server-ip-addr').value = '';
+            document.getElementById('server-port').value = 25565;
+            document.getElementById('server-max-players').value = 20;
+            document.getElementById('view-distance').value = 10;
+            document.getElementById('simulation-distance').value = 10;
+            document.getElementById('max-world-size').value = 29999984;
+            document.getElementById('spawn-protection').value = 16;
+            document.getElementById('server-online-mode').checked = true;
+            document.getElementById('server-allow-flight').checked = false;
+            document.getElementById('server-pvp').checked = true;
+            document.getElementById('enable-command-block').checked = false;
+            document.getElementById('allow-nether').checked = true;
+            document.getElementById('hardcore').checked = false;
+            document.getElementById('hide-online-players').checked = false;
+            document.getElementById('spawn-monsters').checked = true;
+            document.getElementById('server-difficulty').value = 'normal';
+            markSettingsChanged();
+            triggerNotification(t('notif-info'), 'Server settings reset to defaults', 'success');
+        }
+    }
+
+    function renderWhitelist() {
+        const container = document.getElementById('whitelist-list');
+        if (!container) return;
+        if (currentWhitelist.length === 0) {
+            container.innerHTML = `<div class="player-list-item" style="justify-content: center; color: var(--text-muted);">${t('empty-list')}</div>`;
+            return;
+        }
+        container.innerHTML = currentWhitelist.map(name => `
+            <div class="player-list-item">
+                <span class="player-list-name">${escapeHtml(name)}</span>
+                <button class="btn-icon" style="width: 28px; height: 28px;" onclick="removeFromWhitelist('${escapeHtml(name)}')">🗑️</button>
+            </div>
+        `).join('');
+    }
+
+    function addToWhitelist() {
+        const input = document.getElementById('whitelist-add-name');
+        const name = input.value.trim();
+        if (!name) return;
+        if (currentWhitelist.includes(name)) {
+            triggerNotification(t('notif-error'), 'Player already in whitelist', 'error');
+            return;
+        }
+        currentWhitelist.push(name);
+        input.value = '';
+        renderWhitelist();
+        markSettingsChanged();
+    }
+
+    function removeFromWhitelist(name) {
+        currentWhitelist = currentWhitelist.filter(n => n !== name);
+        renderWhitelist();
+        markSettingsChanged();
+    }
+
+    async function saveWhitelist() {
+        try {
+            await fetch(apiBaseUrl + '/api/whitelist', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ players: currentWhitelist, enabled: document.getElementById('whitelist-enabled').checked })
+            });
+            triggerNotification(t('notif-success'), t('notif-wl-saved'), 'success');
+            isServerSettingsModified = false;
+        } catch (e) {
+            triggerNotification(t('notif-info'), 'Saved locally', 'info');
+        }
+    }
+
+    function resetWhitelist() {
+        if (currentWhitelist.length === 0) {
+            triggerNotification(t('notif-info'), "Настройки и так стоят по умолчанию.", 'info');
+            return;
+        }
+        if (confirm('Remove all players from whitelist?')) {
+            currentWhitelist = [];
+            renderWhitelist();
+            markSettingsChanged();
+            triggerNotification(t('notif-info'), 'Whitelist cleared', 'success');
+        }
+    }
+
+    function renderOps() {
+        const container = document.getElementById('ops-list');
+        if (!container) return;
+        if (currentOps.length === 0) {
+            container.innerHTML = `<div class="player-list-item" style="justify-content: center; color: var(--text-muted);">${t('empty-list')}</div>`;
+            return;
+        }
+        container.innerHTML = currentOps.map(name => `
+            <div class="player-list-item">
+                <span class="player-list-name">${escapeHtml(name)}</span>
+                <button class="btn-icon" style="width: 28px; height: 28px;" onclick="removeFromOps('${escapeHtml(name)}')">🗑️</button>
+            </div>
+        `).join('');
+    }
+
+    function addToOps() {
+        const input = document.getElementById('op-add-name');
+        const name = input.value.trim();
+        if (!name) return;
+        if (currentOps.includes(name)) {
+            triggerNotification(t('notif-error'), 'Player is already operator', 'error');
+            return;
+        }
+        currentOps.push(name);
+        input.value = '';
+        renderOps();
+        markSettingsChanged();
+    }
+
+    function removeFromOps(name) {
+        currentOps = currentOps.filter(n => n !== name);
+        renderOps();
+        markSettingsChanged();
+    }
+
+    async function saveOps() {
+        try {
+            await fetch(apiBaseUrl + '/api/ops', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ operators: currentOps })
+            });
+            triggerNotification(t('notif-success'), t('notif-ops-saved'), 'success');
+            isServerSettingsModified = false;
+        } catch (e) {
+            triggerNotification(t('notif-info'), 'Saved locally', 'info');
+        }
+    }
+
+    function resetOps() {
+        if (currentOps.length === 0) {
+            triggerNotification(t('notif-info'), "Настройки и так стоят по умолчанию.", 'info');
+            return;
+        }
+        if (confirm('Remove all operators?')) {
+            currentOps = [];
+            renderOps();
+            markSettingsChanged();
+            triggerNotification(t('notif-info'), 'Operators cleared', 'success');
+        }
+    }
+
+    async function fetchPlayers() {
+        try {
+            const response = await fetch(apiBaseUrl + '/api/players');
+            if (!response.ok) return;
+            allPlayersData = await response.json();
+            renderPlayersList(allPlayersData);
+        } catch (e) {}
+    }
+
+    function renderPlayersList(players) {
+        const tbody = document.getElementById('players-list');
+        if (!players || players.length === 0) {
+            tbody.innerHTML = `<td colspan="4" style="text-align: center; color: var(--text-muted); padding: 40px;">${t('table-empty')}`;
+            return;
+        }
+        tbody.innerHTML = players.map(p => `
+            <tr>
+                <td style="display: flex; align-items: center; gap: 10px;">
+                    <img src="https://minotar.net/helm/${p.name}/32.png" alt="head" class="player-head">
+                    <span class="player-name">${escapeHtml(p.name)}</span>
+                   </td>
+                <td class="player-time" style="color: var(--success); font-family: monospace;">${p.ping}</td>
+                <td class="player-time">${p.playTime}</td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="btn-sm btn-kick" onclick="openModal('${escapeHtml(p.name)}', 'kick')">${t('btn-kick')}</button>
+                        <button class="btn-sm btn-mute" onclick="openModal('${escapeHtml(p.name)}', 'mute')">${t('btn-mute')}</button>
+                        <button class="btn-sm btn-ban" onclick="openModal('${escapeHtml(p.name)}', 'ban')">${t('btn-ban')}</button>
+                    </div>
+                </td>
+              </tr>
+        `).join('');
+    }
+
+    function filterPlayersList() {
+        const searchTerm = document.getElementById('playersSearch').value.toLowerCase();
+        const filtered = allPlayersData.filter(p => p.name.toLowerCase().includes(searchTerm));
+        renderPlayersList(filtered);
+    }
+
+    function openModal(playerName, action) {
+        document.getElementById('modalPlayerName').textContent = playerName;
+        document.getElementById('modalActionType').value = action;
+        document.getElementById('modalReason').value = '';
+        document.getElementById('modalDuration').value = '';
+        document.getElementById('modalByIp').checked = false;
+        const title = document.getElementById('modalTitle');
+        const submitBtn = document.getElementById('modalSubmitBtn');
+        const durGroup = document.getElementById('durationGroup');
+        const ipToggle = document.getElementById('ipActionToggle');
+        ipToggle.style.display = (action === 'kick') ? 'none' : 'flex';
+        durGroup.style.display = (action === 'kick') ? 'none' : 'flex';
+        if (action === 'ban') {
+            title.textContent = "Бан игрока";
+            submitBtn.textContent = "Забанить";
+            submitBtn.style.background = 'var(--danger)';
+        } else if (action === 'mute') {
+            title.textContent = "Мут игрока";
+            submitBtn.textContent = "Замутить";
+            submitBtn.style.background = 'var(--info-color)';
+        } else if (action === 'kick') {
+            title.textContent = "Кик игрока";
+            submitBtn.textContent = "Кикнуть";
+            submitBtn.style.background = 'var(--warn-color)';
+        }
+        document.getElementById('punishModal').classList.add('active');
+    }
+
+    function submitPunish() {
+        const player = document.getElementById('modalPlayerName').textContent;
+        const action = document.getElementById('modalActionType').value;
+        const reason = document.getElementById('modalReason').value || 'Reason';
+        const duration = document.getElementById('modalDuration').value;
+        const byIp = document.getElementById('modalByIp').checked;
+        let cmd = '';
+        if (action === 'ban') cmd = byIp ? `ban-ip ${player} ${reason}` : `ban ${player} ${duration} ${reason}`;
+        else if (action === 'mute') cmd = byIp ? `muteip ${player} ${duration} ${reason}` : `mute ${player} ${duration} ${reason}`;
+        else if (action === 'kick') cmd = `kick ${player} ${reason}`;
+        fetch(apiBaseUrl + '/api/command', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ command: cmd.trim() }) });
+        closeModal('punishModal');
+        triggerNotification(t('notif-info'), `Action ${action} -> ${player}`, 'success');
+    }
+
+    async function openPunishedModal() {
+        document.getElementById('punishedListModal').classList.add('active');
+        const tbody = document.getElementById('punished-list-body');
+        tbody.innerHTML = `\) <td style="text-align:center">${t('loading')}   </td>`;
+        try {
+            const res = await fetch(apiBaseUrl + '/api/punishments');
+            allPunishedData = await res.json();
+            renderPunishedList(allPunishedData);
+        } catch (e) {
+            tbody.innerHTML = `<td style="text-align:center; color:red;">Ошибка загрузки</td>`;
+        }
+    }
+
+    function renderPunishedList(data) {
+        const tbody = document.getElementById('punished-list-body');
+        tbody.innerHTML = '';
+        if (data.length === 0) {
+            tbody.innerHTML = `<td colspan="3" style="text-align:center">${t('msg-no-punish')}</td>`;
+            return;
+        }
+        data.forEach(p => {
+            tbody.innerHTML += `
+                 <tr>
+                    <td style="font-weight:bold;">
+                        ${escapeHtml(p.name)}<br>
+                        <span style="font-size:11px; color:var(--text-muted); font-weight:normal;">Выдал: ${escapeHtml(p.source)} | ${p.created}</span>
+                    </td>
+                    <td style="color:var(--warn-color); font-size:12px;">
+                        ${p.type}<br>
+                        <span style="color:var(--text-main);">До: ${p.expiration}</span><br>
+                        <span style="color:var(--info-color);">${escapeHtml(p.reason)}</span>
+                    </td>
+                    <td style="text-align:right; min-width: 140px;">
+                        <button class="btn-sm btn-mute" onclick="executeActionCmd('pardon ${p.name}', '${escapeHtml(p.name)}', 'unban')">${t('btn-unban')}</button>
+                        <button class="btn-sm btn-ban" onclick="executeActionCmd('pardon-ip ${p.name}', '${escapeHtml(p.name)}', 'unban')">IP ${t('btn-unban')}</button>
+                    </td>
+                 </tr>
+            `;
+        });
+    }
+
+    async function executeActionCmd(cmd, playerName, actionType) {
+        await fetch(apiBaseUrl + '/api/command', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ command: cmd }) });
+        let msgKey = actionType === 'unban' ? 'notif-unbanned' : 'notif-unmuted';
+        triggerNotification(t('notif-success'), t(msgKey).replace('{player}', playerName), 'success');
+        openPunishedModal();
+    }
+
+    function filterPunishedList() {
+        const searchTerm = document.getElementById('punishedSearch').value.toLowerCase();
+        const filtered = allPunishedData.filter(p => p.name.toLowerCase().includes(searchTerm));
+        renderPunishedList(filtered);
+    }
+
+    // File manager functions
+    function updatePathDisplay(path) {
+        const container = document.getElementById('pathContainer');
+        if (!container) return;
+        const pathLabel = t('label-path');
+        const parts = path.split('/').filter(p => p.trim() !== '');
+        let html = `<span class="path-label">${pathLabel}</span> <span class="path-arrow">→</span> <span class="path-segment" onclick="loadFileList('')">Server</span>`;
+        let currentPathStr = '';
+        parts.forEach(part => {
+            currentPathStr += (currentPathStr ? '/' : '') + part;
+            html += `<span class="path-separator">/</span> <span class="path-segment" onclick="loadFileList('${currentPathStr}')">${escapeHtml(part)}</span>`;
+        });
+        container.innerHTML = html;
+    }
+
+    function navigateBack() {
+        if (currentPath === '') return;
+        const parts = currentPath.split('/');
+        parts.pop();
+        const parentPath = parts.join('/');
+        loadFileList(parentPath);
+    }
+
+    function updateBackButtonVisibility() {
+        const backBtn = document.getElementById('file-back-btn');
+        if (backBtn) backBtn.style.display = (currentPath !== '') ? 'inline-flex' : 'none';
+    }
+
+    async function loadFileList(path = '') {
+        if (!isServerAvailable) {
+            updateFilesSection();
+            return;
+        }
+        currentPath = path;
+        try {
+            const resp = await fetch(`${apiBaseUrl}/api/files?path=${encodeURIComponent(path)}`);
+            const data = await resp.json();
+            renderFileList(data);
+            updatePathDisplay(path);
+            updateBackButtonVisibility();
+        } catch (e) {
+            triggerNotification(t('notif-error'), t('msg-file-load-error'), 'error');
+        }
+    }
+
+    function renderFileList(files) {
+        const container = document.getElementById('file-list');
+        container.innerHTML = '';
+        if (files.length === 0) {
+            container.innerHTML = '<div class="file-item"><div class="file-name" style="grid-column: 1/-1; text-align:center; color: var(--text-muted);">Папка пуста</div></div>';
+            return;
+        }
+        files.forEach(file => {
+            const item = document.createElement('div');
+            item.className = 'file-item';
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'file-name';
+            nameDiv.innerHTML = `<span class="file-icon">${file.type === 'dir' ? '📁' : '📄'}</span> ${escapeHtml(file.name)}`;
+            if (file.type === 'dir') {
+                nameDiv.style.cursor = 'pointer';
+                nameDiv.onclick = () => loadFileList(file.path);
+            } else {
+                nameDiv.style.cursor = 'pointer';
+                nameDiv.onclick = () => editFile(file.path);
+            }
+            const sizeDiv = document.createElement('div');
+            sizeDiv.className = 'file-size';
+            sizeDiv.textContent = file.type === 'dir' ? '—' : formatBytes(file.size);
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'file-actions';
+            if (file.type === 'file') {
+                const editBtn = document.createElement('button');
+                editBtn.className = 'btn-icon edit';
+                editBtn.innerHTML = '✏️';
+                editBtn.onclick = (e) => { e.stopPropagation(); editFile(file.path); };
+                const downloadBtn = document.createElement('button');
+                downloadBtn.className = 'btn-icon download';
+                downloadBtn.innerHTML = '📥';
+                downloadBtn.onclick = (e) => { e.stopPropagation(); downloadFile(file.path); };
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn-icon delete';
+                deleteBtn.innerHTML = '🗑️';
+                deleteBtn.onclick = (e) => { e.stopPropagation(); deleteFile(file.path); };
+                actionsDiv.append(editBtn, downloadBtn, deleteBtn);
+            } else {
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn-icon delete';
+                deleteBtn.innerHTML = '🗑️';
+                deleteBtn.onclick = (e) => { e.stopPropagation(); deleteFile(file.path); };
+                actionsDiv.appendChild(deleteBtn);
+            }
+            item.append(nameDiv, sizeDiv, actionsDiv);
+            container.appendChild(item);
+        });
+    }
+
+    function formatBytes(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    function uploadFile() {
+        if (!isServerAvailable) {
+            triggerNotification(t('notif-warn'), "Сервер недоступен", 'warn');
+            return;
+        }
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.multiple = true;
+        input.onchange = () => {
+            const files = Array.from(input.files);
+            uploadFilesToCurrentPath(files);
+        };
+        input.click();
+    }
+
+    async function uploadFilesToCurrentPath(files) {
+        const formData = new FormData();
+        files.forEach(f => formData.append('files', f));
+        try {
+            const resp = await fetch(`${apiBaseUrl}/api/files/upload?path=${encodeURIComponent(currentPath)}`, { method: 'POST', body: formData });
+            if (resp.ok) {
+                triggerNotification(t('notif-success'), 'Файлы загружены', 'success');
+                loadFileList(currentPath);
+            } else {
+                const err = await resp.text();
+                triggerNotification(t('notif-error'), err, 'error');
+            }
+        } catch (e) {
+            triggerNotification(t('notif-error'), t('msg-upload-failed'), 'error');
+        }
+    }
+
+    async function deleteFile(filePath) {
+        if (!confirm(`Удалить ${filePath}?`)) return;
+        try {
+            const resp = await fetch(`${apiBaseUrl}/api/files/delete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path: filePath })
+            });
+            if (resp.ok) {
+                triggerNotification(t('notif-success'), t('file-delete-success'), 'success');
+                loadFileList(currentPath);
+            } else {
+                const err = await resp.text();
+                triggerNotification(t('notif-error'), err, 'error');
+            }
+        } catch (e) {
+            triggerNotification(t('notif-error'), t('msg-file-read-error'), 'error');
+        }
+    }
+
+    function createNewFile() {
+        if (!isServerAvailable) {
+            triggerNotification(t('notif-warn'), "Сервер недоступен", 'warn');
+            return;
+        }
+        const fileName = prompt('Введите имя нового файла (с расширением):', 'новый_файл.txt');
+        if (!fileName) return;
+        const filePath = currentPath ? `${currentPath}/${fileName}` : fileName;
+        editFile(filePath);
+    }
+
+    async function editFile(filePath) {
+        currentEditingFile = filePath;
+        try {
+            const resp = await fetch(`${apiBaseUrl}/api/files/read?path=${encodeURIComponent(filePath)}`);
+            if (resp.status === 404) {
+                openEditor(filePath, '', filePath.split('.').pop());
+            } else if (resp.ok) {
+                const content = await resp.text();
+                const ext = filePath.split('.').pop();
+                openEditor(filePath, content, ext);
+            } else {
+                triggerNotification(t('notif-error'), t('msg-file-read-error'), 'error');
+            }
+        } catch (e) {
+            if (e.toString().includes('404')) {
+                openEditor(filePath, '', filePath.split('.').pop());
+            } else {
+                triggerNotification(t('notif-error'), t('msg-file-read-error'), 'error');
+            }
+        }
+    }
+
+    function getModeForExt(ext) {
+        const modes = {
+            'yml': 'yaml', 'yaml': 'yaml', 'json': 'application/json', 'txt': 'text/plain',
+            'properties': 'properties', 'xml': 'xml', 'html': 'htmlmixed', 'js': 'javascript',
+            'css': 'css', 'sh': 'shell', 'bat': 'shell', 'java': 'text/x-java', 'py': 'python', 'md': 'markdown'
+        };
+        return modes[ext] || 'text/plain';
+    }
+
+    function openEditor(filename, content, ext) {
+        document.getElementById('fileEditorModal').classList.add('active');
+        document.getElementById('editor-title-name').textContent = filename.split('/').pop();
+        const textarea = document.getElementById('file-editor');
+        textarea.value = content;
+        if (fileEditor) fileEditor.toTextArea();
+        fileEditor = CodeMirror.fromTextArea(textarea, {
+            lineNumbers: true,
+            mode: getModeForExt(ext),
+            theme: 'dracula',
+            indentUnit: 2,
+            tabSize: 2,
+            lineWrapping: true
+        });
+        fileEditor.on('change', () => {
+            unsavedChanges = true;
+            document.getElementById('editor-unsaved-warning').style.display = 'inline';
+        });
+    }
+
+    async function saveFile() {
+        if (!fileEditor) return;
+        const content = fileEditor.getValue();
+        try {
+            const resp = await fetch(`${apiBaseUrl}/api/files/save`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path: currentEditingFile, content: content })
+            });
+            if (resp.ok) {
+                unsavedChanges = false;
+                document.getElementById('editor-unsaved-warning').style.display = 'none';
+                triggerNotification(t('notif-success'), t('save-success'), 'success');
+                loadFileList(currentPath);
+            } else {
+                const err = await resp.text();
+                triggerNotification(t('notif-error'), err, 'error');
+            }
+        } catch (e) {
+            triggerNotification(t('notif-error'), t('msg-file-read-error'), 'error');
+        }
+    }
+
+    function closeFileEditor() {
+        if (unsavedChanges) {
+            if (!confirm(t('msg-unsaved-confirm'))) return;
+        }
+        document.getElementById('fileEditorModal').classList.remove('active');
+        unsavedChanges = false;
+        currentEditingFile = null;
+        document.getElementById('editor-unsaved-warning').style.display = 'none';
+        if (fileEditor) {
+            fileEditor.toTextArea();
+            fileEditor = null;
+        }
+    }
+
+    async function downloadFile(filePath) {
+        window.open(`${apiBaseUrl}/api/files/download?path=${encodeURIComponent(filePath)}${getDownloadToken()}`, '_blank');
+    }
+
+    function openLogColorsModal() {
+        document.getElementById('logColorsModal').classList.add('active');
+    }
+
+    document.getElementById('modalSubmitBtn').addEventListener('click', submitPunish);
+
+    // Tooltip handling
+    const tooltipEl = document.createElement('div');
+    tooltipEl.className = 'global-tooltip';
+    document.body.appendChild(tooltipEl);
+
+    document.addEventListener('mouseover', (e) => {
+        const target = e.target.closest('[data-tooltip]');
+        if (target) {
+            tooltipEl.textContent = target.getAttribute('data-tooltip');
+            tooltipEl.style.opacity = '0';
+            tooltipEl.classList.add('show');
+            const rect = target.getBoundingClientRect();
+            const pos = target.getAttribute('data-tooltip-pos') || 'top';
+            let leftPos = rect.left + (rect.width / 2) - (tooltipEl.offsetWidth / 2);
+            if (leftPos < 10) leftPos = 10;
+            if (leftPos + tooltipEl.offsetWidth > window.innerWidth - 10) {
+                leftPos = window.innerWidth - tooltipEl.offsetWidth - 10;
+            }
+            tooltipEl.style.left = leftPos + 'px';
+            if (pos === 'bottom') {
+                tooltipEl.style.top = rect.bottom + 10 + 'px';
+            } else {
+                tooltipEl.style.top = rect.top - tooltipEl.offsetHeight - 10 + 'px';
+            }
+            tooltipEl.style.opacity = '';
+        }
+    });
+
+    document.addEventListener('mouseout', (e) => {
+        if (e.target.closest('[data-tooltip]')) tooltipEl.classList.remove('show');
+    });
+
+    // Drag & drop for file manager
+    const dropzone = document.getElementById('file-list');
+    if (dropzone) {
+        const dropContainer = dropzone.parentElement;
+        dropContainer.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropContainer.style.border = '2px dashed var(--accent)';
+            dropContainer.style.borderRadius = '12px';
+        });
+        dropContainer.addEventListener('dragleave', (e) => {
+            dropContainer.style.border = '';
+        });
+        dropContainer.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropContainer.style.border = '';
+            const files = Array.from(e.dataTransfer.files);
+            if (files.length) uploadFilesToCurrentPath(files);
+        });
+    }
+
+    document.getElementById('logSearch').addEventListener('input', applyFilters);
+
+    // Пинг для страницы авторизации
+    setInterval(() => {
+        if(document.getElementById('auth-page').classList.contains('active')) {
+            originalFetch(apiBaseUrl + '/api/ping')
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('auth-status-dot').className = 'status-dot online';
+                document.getElementById('auth-status-text').textContent = t('auth-status-avail');
+                document.getElementById('auth-status-text').style.color = 'var(--success)';
+                document.getElementById('auth-version-text').textContent = 'v' + data.version;
+            }).catch(e => {
+                document.getElementById('auth-status-dot').className = 'status-dot';
+                document.getElementById('auth-status-text').textContent = t('auth-status-unavail');
+                document.getElementById('auth-status-text').style.color = 'var(--danger)';
+            });
+        }
+    }, 3000);
+
+    // Инициализация
+    loadSettings();
+    syncAuthSettings();
+    setTimeout(() => {
+        document.getElementById('set-color-accent-auth').value = document.getElementById('set-color-accent').value;
+        document.getElementById('set-language-auth').value = document.getElementById('set-language').value;
+
+        const savedToken = localStorage.getItem('wcToken');
+        if (savedToken) {
+            currentToken = savedToken;
+            document.getElementById('auth-page').classList.remove('active');
+            startIntervals();
+            fetchServerCommands();
+            startServerAvailabilityCheck();
+            checkServerAvailability();
+            if (typeof fetchServerInfo === 'function') fetchServerInfo();
+            if (document.getElementById('page-players').classList.contains('active-section')) fetchPlayers();
+        } else {
+            showAuthPage();
+        }
+    }, 100);
+</script>
+<script src="plugins.js"></script>
+</body>
+</html>

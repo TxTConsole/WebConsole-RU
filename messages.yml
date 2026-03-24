@@ -1,0 +1,30 @@
+# ==========================================
+# WebConsole Messages Configuration
+# ==========================================
+
+# Сообщения в консоли сервера (Minecraft)
+system:
+  plugin-enabled: "&a[WebConsole] Плагин успешно запущен!"
+  plugin-disabled: "&c[WebConsole] Плагин выключен."
+  server-start-error: "&4[WebConsole] Ошибка при запуске веб-сервера: {error}"
+  web-url: "&e[WebConsole] Панель доступна по адресу: &nhttp://localhost:{port}"
+
+# Сообщения для веб-интерфейса
+web:
+  login-title: "Авторизация WebConsole"
+  login-button: "Войти в систему"
+  placeholder-password: "Введите пароль управления..."
+  footer-text: "Управление сервером Minecraft через WebConsole"
+
+# Уведомления о действиях
+actions:
+  command-sent: "&7Команда успешно отправлена: &f{command}"
+  auth-success: "&aДоступ разрешен. Добро пожаловать!"
+  auth-failed: "&cОшибка! Неверный пароль."
+  connection-lost: "&4Соединение с сервером разорвано!"
+
+# Тексты для логов
+logs:
+  empty: "Ожидание новых записей в консоли..."
+  filter-all: "Все логи"
+  filter-warn: "Только ошибки"
