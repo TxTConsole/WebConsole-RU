@@ -9,7 +9,6 @@
 
 **[Скачать плагин SpigotMC](https://www.spigotmc.org/resources/webconsole.133712/)**
 **[Английская версия плагина](https://github.com/TxTConsole/WebConsole-EN)**
-**[Скачать плагин SpigotRU](https://spigotmc.ru/resources/webconsole.5257/)**
 
 ---
 
