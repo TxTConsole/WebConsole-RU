@@ -1,4 +1,4 @@
-<img width="1238" height="962" alt="image" src="https://github.com/user-attachments/assets/8bd7672d-fd9a-4141-b414-8c452eac8fb9" />
+<img width="1916" height="945" alt="изображение" src="https://github.com/user-attachments/assets/eee26159-94f8-439c-85c5-26a5877bd920" />
 
 
 ## 🚀 **Что такое WebConsole?**
@@ -97,47 +97,180 @@
 ## 📋 **Конфигурация (`config.yml`)**
 
 ```yaml
-# ==========================================
-# WebConsole Configuration v1.0.0
-# ==========================================
-
+# ==========================
+# WebConsole конфигурация
+# Версия -> v1.1-SNAPSHOT
+# Мой Discord -> @txt.console
+# ==========================
+    
+# Настройки веб-панели управления.
 server:
-  # Порт для веб-интерфейса
-  # После изменения требуется перезагрузка сервера
+  # Порт, на котором будет доступна панель (например: http://ip-сервера:8080)
   port: 8080
+  # IP для привязки. 0.0.0.0 позволяет подключаться извне.
+  host: "0.0.0.0"
+
+# Язык панели по умолчанию (ru / en).
+# - Меняет язык ВСЕХ строк панели при первом входе на сайт.
+# - Меняет приветственное сообщение в консоли при запуске сервера.
+# - Если администратор выберет другой язык в самой панели — он сохранится
+#   у него лично (переживает перезагрузки) и не будет сброшен этим значением.
+lang: ru
 
 security:
-  # Включить авторизацию (true/false)
-  # Если false, доступ будет открыт без пароля (не рекомендуется!)
-  enabled: true
-
-  # Время жизни сессии в часах (для тех, кто поставил галочку "Запомнить меня")
-  # По истечении времени потребуется повторный вход
+  # Длительность авторизованной сессии в часах
   session-timeout-hours: 24
 
-  # Список пользователей (логин: "пароль")
-  # Вы можете добавить любое количество пользователей
+  # Защита от подбора пароля (Brute-force protection)
+  max-failed-attempts: 5
+  # Команда, которая выполнится сервером при превышении попыток входа
+  # Переменные: %ip%, %username%
+  punishment-command: "ban-ip %ip% Превышено количество попыток входа в WebConsole"
+  # Время блокировки IP в веб-панели (в минутах)
+  lockout-minutes: 30
+
+  # ==========================================================
+  # Список пользователей панели.
+  #
+  # У каждого пользователя свой пароль и свой набор прав.
+  # Формат:
+  #   <логин>:
+  #     password: "<пароль>"
+  #     permissions:
+  #       <право>: <true/false>
+  #
+  # Если у пользователя НЕ указан блок permissions — ему доступно ВСЁ
+  # (полный доступ администратора).
+  #
+  # Доступные права:
+  # -----------------
+  # console             -> раздел «Консоль сервера» и отправка команд
+  # players             -> раздел «Игроки онлайн»
+  # files               -> раздел «Файлы»
+  # plugins             -> раздел «Плагины» (поиск и установка плагинов)
+  # logs                -> раздел «Логи действий»
+  # server_settings     -> «Настройка сервера» во вкладке настроек
+  # sanctions           -> наказания: бан / мут / кик / снятие наказаний
+  # ops                 -> выдача и снятие оператора
+  # whitelist           -> управление белым списком
+  # file_edit           -> создание и редактирование файлов (в т.ч. загрузка).
+  #                        ВАЖНО: даже с этим правом нельзя создавать или
+  #                        загружать файлы внутрь папки plugins/ без права
+  #                        plugins ниже.
+  # file_delete_download-> удаление и скачивание файлов
+  # mod_folder          -> доступ к папке мода WebConsole через «Файлы».
+  #                        БЕЗ него нельзя зайти в папку, а также скачать или
+  #                        удалить jar-файл самого плагина.
+  # wc_reload           -> команда /wc reload (перезагрузка панели WebConsole).
+  #                        По умолчанию это право равно mod_folder: если у
+  #                        администратора нет доступа к папке плагина — команда
+  #                        запрещена. Если доступ есть — можно отдельно настроить,
+  #                        разрешена ли ему перезагрузка.
+  # server_control      -> перезагрузка и остановка сервера
+  # logs_manage         -> удаление и скачивание логов сервера.
+  #                        БЕЗ этого права пользователь НЕ сможет зайти
+  #                        в папки logs и crash-reports даже при доступе
+  #                        в раздел «Файлы», а также открыть архив логов.
+  #
+  # Старый формат (логин: "пароль") тоже работает — такой пользователь
+  # получает все права автоматически (полный доступ).
+  # ==========================================================
   users:
-    admin: "admin123"
-    moderator: "mod123"
-    # user: "password" - пример добавления нового пользователя
+    admin:
+      password: "admin_password_here"
+      permissions:
+        console: true
+        players: true
+        files: true
+        plugins: true
+        logs: true
+        server_settings: true
+        sanctions: true
+        ops: true
+        whitelist: true
+        file_edit: true
+        file_delete_download: true
+        mod_folder: true
+        server_control: true
+        logs_manage: true
+        wc_reload: true
+    moderator:
+      password: "mod_secret_123"
+      permissions:
+        console: true
+        players: true
+        files: true
+        plugins: false
+        logs: true
+        server_settings: false
+        sanctions: true
+        ops: false
+        whitelist: false
+        file_edit: true
+        file_delete_download: false
+        mod_folder: false
+        server_control: false
+        logs_manage: false
+        wc_reload: false
+    developer:
+      password: "dev_pass_2026"
+      permissions:
+        console: true
+        players: false
+        files: true
+        plugins: true
+        logs: false
+        server_settings: true
+        sanctions: false
+        ops: false
+        whitelist: false
+        file_edit: true
+        file_delete_download: true
+        mod_folder: true
+        server_control: false
+        logs_manage: true
+        wc_reload: true
 
-  # Разрешить выполнение команд из веб-консоли (true/false)
-  # Если false, поле ввода команд будет отключено
-  allow-commands: true
+# ============================================================
+# Система наказаний (Бан / Мут / Кик)
+# ============================================================
+# Если установлен один из известных модов (например LiteBans), мод
+# определяется автоматически и кнопки Бана/Мута активируются.
+#
+# Если используется кастомный мод — пропишите команды ниже и поставьте
+# enabled: true. После изменения файла перезагрузите наш плагин.
+# Переменные: %player% %reason% %duration%  (duration пустое = навсегда)
+# Автоопределение модов: LiteBans, AdvancedBan, LightBans.
+# Если у вас один из этих модов, можно оставить command пустым — команды подберутся сами.
+moderation:
+  ban:
+    enabled: false
+    command: ""
+    # Пример для LiteBans/AdvancedBan/LightBans (пусто = автоподбор):
+    # command: "litebans:ban %player% %duration% %reason%"
+    # Команда снятия бана (разбан). Переменная: %player%
+    unban-command: ""
+    # command: "litebans:unban %player%"
+  mute:
+    enabled: false
+    command: ""
+    # command: "litebans:mute %player% %duration% %reason%"
+    # Команда снятия мута (размут). Переменная: %player%
+    unmute-command: ""
+    # command: "litebans:unmute %player%"
+  kick:
+    # Кик работает штатными командами Minecraft, поэтому доступен всегда.
+    enabled: true
+    command: "kick %player% %reason%"
 
-console:
-  # Максимальное количество строк, хранимых в памяти
-  # Большее значение потребляет больше оперативной памяти
-  max-history-limit: 500
-
-  # Формат времени в логах
-  time-format: "HH:mm:ss"
-
-# Системные сообщения
-messages:
-  server-started: "WebConsole запущен на порту"
-  access-denied: "У вас нет прав для выполнения этой команды"
+# ============================================================
+# Раздел ПЛАГИНЫ (приложение для поиска/установки плагинов)
+# ============================================================
+# Modrinth работает без ключа. Для CurseForge нужен бесплатный
+# API-ключ: зарегистрируйтесь на https://console.curseforge.com
+# и укажите ключ ниже (или введите его в настройках панели).
+plugins:
+  curseforge-api-key: ""
 ```
 
 ---
@@ -152,22 +285,21 @@ messages:
 
 ---
 
-## 📸 **Скриншоты**
+## 📸 **Скриншоты (основные)**
 
-<img width="1237" height="960" alt="image" src="https://github.com/user-attachments/assets/cd9dcaae-5f09-4bfc-b251-b2d7551a01e4" />
-<img width="1237" height="963" alt="image" src="https://github.com/user-attachments/assets/8dd47389-ca22-4cda-8e40-e4e2b119910f" />
-<img width="1239" height="964" alt="image" src="https://github.com/user-attachments/assets/65c6e516-6658-4f96-83d5-ccbfed25c19a" />
-<img width="1236" height="963" alt="image" src="https://github.com/user-attachments/assets/99f9b2d8-3c79-4809-9bf6-3fd5b8cc04c8" />
-<img width="1238" height="962" alt="image" src="https://github.com/user-attachments/assets/090e9374-4922-4635-9fbb-de17f60794d7" />
-<img width="1238" height="963" alt="image" src="https://github.com/user-attachments/assets/c3997c3f-dd63-4ec6-b2a3-6259951ef8f2" />
-<img width="1237" height="960" alt="image" src="https://github.com/user-attachments/assets/7db37ba3-90dd-4609-bb4d-78b00bf576cf" />
-<img width="1237" height="965" alt="image" src="https://github.com/user-attachments/assets/4e8b5bd9-7c43-4a8f-acef-2d8de63fb183" />
+<img width="1916" height="945" alt="изображение" src="https://github.com/user-attachments/assets/e35fc8a3-f1f6-4b43-b178-18dd477aaeca" />
+<img width="1917" height="942" alt="изображение" src="https://github.com/user-attachments/assets/aa96855c-6b79-4bc2-ae8f-fa73cf89c412" />
+<img width="1917" height="944" alt="изображение" src="https://github.com/user-attachments/assets/ca1cb820-90b0-4b92-b840-2d920a8d3a33" />
+<img width="1915" height="944" alt="изображение" src="https://github.com/user-attachments/assets/01fd5bd4-4d6b-43f6-8f4e-7db0e21d4d38" />
+<img width="1916" height="946" alt="изображение" src="https://github.com/user-attachments/assets/6cfdc606-4938-458a-ab98-4b5add4bf86e" />
+<img width="1918" height="944" alt="изображение" src="https://github.com/user-attachments/assets/96b42f19-6893-47a7-9c6f-383366de595f" />
+<img width="1916" height="943" alt="изображение" src="https://github.com/user-attachments/assets/14951d72-fad7-4307-a3a2-91b49d240ff8" />
 
 ---
 
 ## 🧩 **Требования**
 
-- **Сервер:** Paper 1.21.4 (также работает на Spigot, Purpur)
+- **Сервер:** с версией от 1.21 и выше (Поддержка Paper, PurPur, Spigot)
 - **Java:** 21
 - **Браузер:** Любой современный (Chrome, Firefox, Edge)
 
