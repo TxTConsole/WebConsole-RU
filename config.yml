@@ -1,0 +1,174 @@
+# ==========================
+# WebConsole конфигурация
+# Версия -> v1.1-SNAPSHOT
+# Мой Discord -> @txt.console
+# ==========================
+    
+# Настройки веб-панели управления.
+server:
+  # Порт, на котором будет доступна панель (например: http://ip-сервера:8080)
+  port: 8080
+  # IP для привязки. 0.0.0.0 позволяет подключаться извне.
+  host: "0.0.0.0"
+
+# Язык панели по умолчанию (ru / en).
+# - Меняет язык ВСЕХ строк панели при первом входе на сайт.
+# - Меняет приветственное сообщение в консоли при запуске сервера.
+# - Если администратор выберет другой язык в самой панели — он сохранится
+#   у него лично (переживает перезагрузки) и не будет сброшен этим значением.
+lang: ru
+
+security:
+  # Длительность авторизованной сессии в часах
+  session-timeout-hours: 24
+
+  # Защита от подбора пароля (Brute-force protection)
+  max-failed-attempts: 5
+  # Команда, которая выполнится сервером при превышении попыток входа
+  # Переменные: %ip%, %username%
+  punishment-command: "ban-ip %ip% Превышено количество попыток входа в WebConsole"
+  # Время блокировки IP в веб-панели (в минутах)
+  lockout-minutes: 30
+
+  # ==========================================================
+  # Список пользователей панели.
+  #
+  # У каждого пользователя свой пароль и свой набор прав.
+  # Формат:
+  #   <логин>:
+  #     password: "<пароль>"
+  #     permissions:
+  #       <право>: <true/false>
+  #
+  # Если у пользователя НЕ указан блок permissions — ему доступно ВСЁ
+  # (полный доступ администратора).
+  #
+  # Доступные права:
+  # -----------------
+  # console             -> раздел «Консоль сервера» и отправка команд
+  # players             -> раздел «Игроки онлайн»
+  # files               -> раздел «Файлы»
+  # plugins             -> раздел «Плагины» (поиск и установка плагинов)
+  # logs                -> раздел «Логи действий»
+  # server_settings     -> «Настройка сервера» во вкладке настроек
+  # sanctions           -> наказания: бан / мут / кик / снятие наказаний
+  # ops                 -> выдача и снятие оператора
+  # whitelist           -> управление белым списком
+  # file_edit           -> создание и редактирование файлов (в т.ч. загрузка).
+  #                        ВАЖНО: даже с этим правом нельзя создавать или
+  #                        загружать файлы внутрь папки plugins/ без права
+  #                        plugins ниже.
+  # file_delete_download-> удаление и скачивание файлов
+  # mod_folder          -> доступ к папке мода WebConsole через «Файлы».
+  #                        БЕЗ него нельзя зайти в папку, а также скачать или
+  #                        удалить jar-файл самого плагина.
+  # wc_reload           -> команда /wc reload (перезагрузка панели WebConsole).
+  #                        По умолчанию это право равно mod_folder: если у
+  #                        администратора нет доступа к папке плагина — команда
+  #                        запрещена. Если доступ есть — можно отдельно настроить,
+  #                        разрешена ли ему перезагрузка.
+  # server_control      -> перезагрузка и остановка сервера
+  # logs_manage         -> удаление и скачивание логов сервера.
+  #                        БЕЗ этого права пользователь НЕ сможет зайти
+  #                        в папки logs и crash-reports даже при доступе
+  #                        в раздел «Файлы», а также открыть архив логов.
+  #
+  # Старый формат (логин: "пароль") тоже работает — такой пользователь
+  # получает все права автоматически (полный доступ).
+  # ==========================================================
+  users:
+    admin:
+      password: "admin_password_here"
+      permissions:
+        console: true
+        players: true
+        files: true
+        plugins: true
+        logs: true
+        server_settings: true
+        sanctions: true
+        ops: true
+        whitelist: true
+        file_edit: true
+        file_delete_download: true
+        mod_folder: true
+        server_control: true
+        logs_manage: true
+        wc_reload: true
+    moderator:
+      password: "mod_secret_123"
+      permissions:
+        console: true
+        players: true
+        files: true
+        plugins: false
+        logs: true
+        server_settings: false
+        sanctions: true
+        ops: false
+        whitelist: false
+        file_edit: true
+        file_delete_download: false
+        mod_folder: false
+        server_control: false
+        logs_manage: false
+        wc_reload: false
+    developer:
+      password: "dev_pass_2026"
+      permissions:
+        console: true
+        players: false
+        files: true
+        plugins: true
+        logs: false
+        server_settings: true
+        sanctions: false
+        ops: false
+        whitelist: false
+        file_edit: true
+        file_delete_download: true
+        mod_folder: true
+        server_control: false
+        logs_manage: true
+        wc_reload: true
+
+# ============================================================
+# Система наказаний (Бан / Мут / Кик)
+# ============================================================
+# Если установлен один из известных модов (например LiteBans), мод
+# определяется автоматически и кнопки Бана/Мута активируются.
+#
+# Если используется кастомный мод — пропишите команды ниже и поставьте
+# enabled: true. После изменения файла перезагрузите наш плагин.
+# Переменные: %player% %reason% %duration%  (duration пустое = навсегда)
+# Автоопределение модов: LiteBans, AdvancedBan, LightBans.
+# Если у вас один из этих модов, можно оставить command пустым — команды подберутся сами.
+moderation:
+  ban:
+    enabled: false
+    command: ""
+    # Пример для LiteBans/AdvancedBan/LightBans (пусто = автоподбор):
+    # command: "litebans:ban %player% %duration% %reason%"
+    # Команда снятия бана (разбан). Переменная: %player%
+    unban-command: ""
+    # command: "litebans:unban %player%"
+  mute:
+    enabled: false
+    command: ""
+    # command: "litebans:mute %player% %duration% %reason%"
+    # Команда снятия мута (размут). Переменная: %player%
+    unmute-command: ""
+    # command: "litebans:unmute %player%"
+  kick:
+    # Кик работает штатными командами Minecraft, поэтому доступен всегда.
+    enabled: true
+    command: "kick %player% %reason%"
+
+# ============================================================
+# Раздел ПЛАГИНЫ (приложение для поиска/установки плагинов)
+# ============================================================
+# Modrinth работает без ключа. Для CurseForge нужен бесплатный
+# API-ключ: зарегистрируйтесь на https://console.curseforge.com
+# и укажите ключ ниже (или введите его в настройках панели).
+plugins:
+  curseforge-api-key: ""

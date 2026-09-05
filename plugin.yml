@@ -1,0 +1,16 @@
+name: WebConsole
+version: '1.1-SNAPSHOT'
+main: txt.console.webconsole.WebConsolePlugin
+api-version: '1.21'
+authors: ["txt.console"]
+description: "Современная веб-панель для управления сервером Minecraft. / A modern web panel for managing a Minecraft server."
+load: POSTWORLD
+commands:
+  wc:
+    description: "Управление панелью WebConsole / WebConsole panel management"
+    usage: "/wc reload"
+    aliases: [webconsole]
+permissions:
+  webconsole.command:
+    description: "Доступ к командам панели / Access to panel commands"
+    default: op
